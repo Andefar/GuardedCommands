@@ -14,20 +14,21 @@ module TypeCheck =
          | B _              -> BTyp   
          | Access acc       -> tcA gtenv ltenv acc     
                    
-         | Apply(f,[e]) when List.exists (fun x ->  x=f) ["-"]  
+         | Apply(f,[e]) when List.exists (fun x ->  x=f) ["-";"!"]  
                             -> tcMonadic gtenv ltenv f e        
 
-         | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*"; "="; "&&"]        
+         | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*";"=";"&&"]        
                             -> tcDyadic gtenv ltenv f e1 e2   
 
          | _                -> failwith "tcE: not supported yet"
 
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
+                                   | ("!", BTyp) -> BTyp
                                    | _           -> failwith "illegal/illtyped monadic expression" 
    
    and tcDyadic gtenv ltenv f e1 e2 = match (f, tcE gtenv ltenv e1, tcE gtenv ltenv e2) with
-                                      | (o, ITyp, ITyp) when List.exists (fun x ->  x=o) ["+";"*"]  -> ITyp
+                                      | (o, ITyp, ITyp) when List.exists (fun x ->  x=o) ["-";"+";"*"]  -> ITyp
                                       | (o, ITyp, ITyp) when List.exists (fun x ->  x=o) ["="] -> BTyp
                                       | (o, BTyp, BTyp) when List.exists (fun x ->  x=o) ["&&";"="]     -> BTyp 
                                       | _                      -> failwith("illegal/illtyped dyadic expression: " + f)
@@ -53,13 +54,19 @@ module TypeCheck =
 /// tcS gtenv ltenv retOpt s checks the well-typeness of a statement s on the basis of type environments gtenv and ltenv
 /// for global and local variables and the possible type of return expressions 
    and tcS gtenv ltenv = function                           
-                         | PrintLn e -> ignore(tcE gtenv ltenv e)
-                         | Ass(acc,e) -> if tcA gtenv ltenv acc = tcE gtenv ltenv e 
-                                         then ()
-                                         else failwith "illtyped assignment"                                
+                         | PrintLn e      -> ignore(tcE gtenv ltenv e)
+                         | Ass(acc,e)     -> if tcA gtenv ltenv acc = tcE gtenv ltenv e 
+                                             then ()
+                                             else failwith "illtyped assignment"                                
 
                          | Block([],stms) -> List.iter (tcS gtenv ltenv) stms
+                         | Alt(GC(gc))    -> List.iter (fun gcElem -> tcGC gtenv ltenv gcElem) gc
+                         | Do((GC gc))    -> List.iter (fun gcElem -> tcGC gtenv ltenv gcElem) gc
                          | _              -> failwith "tcS: this statement is not supported yet"
+
+   and tcGC gtenv ltenv = function
+             | (e,stms) when tcE gtenv ltenv e = BTyp -> List.iter (fun stm -> tcS gtenv ltenv stm) stms
+             | _ -> failwith "tcGC: not a boolean expression"
 
    and tcGDec gtenv = function  
                       | VarDec(t,s)               -> Map.add s t gtenv
@@ -73,5 +80,3 @@ module TypeCheck =
 /// tcP prog checks the well-typeness of a program prog
    and tcP(P(decs, stms)) = let gtenv = tcGDecs Map.empty decs
                             List.iter (tcS gtenv Map.empty) stms
-
-  

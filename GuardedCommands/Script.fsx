@@ -2,9 +2,9 @@
 
 // You must revise 4 pathes occurring in this file 
 // The first three are:
-#r @"C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\bin\Debug\FSharp.PowerPack.dll";;
-#r @"C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\bin\Debug\Machine.dll";
-#r @"C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\bin\Debug\\VirtualMachine.dll";
+#r @"./bin/Debug/FSharp.PowerPack.dll";;
+#r @"./bin/Debug/Machine.dll";
+#r @"./bin/Debug/VirtualMachine.dll";
 
 #load "AST.fs"
 #load "Parser.fs"
@@ -27,11 +27,11 @@ open Machine
 open VirtualMachine
 
 // You must revise this path
-System.IO.Directory.SetCurrentDirectory @"C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands";;
+System.IO.Directory.SetCurrentDirectory @".";;
 
 // The Ex0.gc example:
 
-let ex0Tree = parseFromFile "Ex0.gc";;
+let ex0Tree = parseFromFile @"./Ex3.gc";;
 
 let _ = tcP ex0Tree;;
 
@@ -44,7 +44,7 @@ let _ = goTrace ex0Tree;;
 
 // Parsing of Ex1.gc
 
-let ex1Tree = parseFromFile "Ex1.gc";; 
+let ex1Tree = parseFromFile "Ex4.gc";; 
 
 // -- is typechecked as follows:
 
@@ -63,7 +63,7 @@ let sameStack = go ex1Tree;;
 
 let _ = exec "Ex1.gc";;
 
-let _ = exec "Ex2.gc";;
+let _ = exec "Ex3.gc";;
 
 // Test of programs covered by the fifth task using optimized compilation (Section 8.2):
 List.iter execOpt ["Ex1.gc"; "Ex2.gc"];;
