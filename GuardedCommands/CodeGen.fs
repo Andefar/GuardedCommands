@@ -36,10 +36,11 @@ module CodeGeneration =
                                 let labfalse = newLabel()
                                 CE vEnv fEnv b1 @ [IFZERO labfalse] @ CE vEnv fEnv b2
                                 @ [GOTO labend; Label labfalse; CSTI 0; Label labend]
-
-       | Apply(o,[e1;e2]) when List.exists (fun x -> o=x) ["+"; "*"; "="]
+       | Apply("!",[a])  -> CE vEnv fEnv a @ [NOT]
+       | Apply(o,[e1;e2]) when List.exists (fun x -> o=x) ["-";"+"; "*"; "="]
                              -> let ins = match o with
                                           | "+"  -> [ADD]
+                                          | "-"  -> [SUB]
                                           | "*"  -> [MUL]
                                           | "="  -> [EQ] 
                                           | _    -> failwith "CE: this case is not possible"
@@ -74,14 +75,19 @@ module CodeGeneration =
        | PrintLn e        -> CE vEnv fEnv e @ [PRINTI; INCSP -1] 
 
        | Ass(acc,e)       -> CA vEnv fEnv acc @ CE vEnv fEnv e @ [STI; INCSP -1]
-
-       | Alt (GC gc)
-
-       |
-
-       | Block([],stms) ->   CSs vEnv fEnv stms
-
+       | Alt(GC gc)       -> let labEnd = newLabel()
+                             List.collect (CGC vEnv fEnv labEnd) gc
+                             @ [STOP;Label labEnd]
+       | Do(GC gc)        -> let labStart = newLabel()
+                             [Label labStart] @
+                             List.collect (CGC vEnv fEnv labStart) gc
+       | Block([],stms)   -> CSs vEnv fEnv stms
+       
        | _                -> failwith "CS: this statement is not supported yet"
+
+   and CGC vEnv fEnv lab (ex,stms) =
+        let labFalse = newLabel() 
+        CE vEnv fEnv ex @ [IFZERO labFalse] @ CSs vEnv fEnv stms @ [GOTO lab;Label labFalse]
 
    and CSs vEnv fEnv stms = List.collect (CS vEnv fEnv) stms 
 
