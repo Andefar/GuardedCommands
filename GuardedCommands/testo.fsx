@@ -28,6 +28,6 @@ open Machine
 open VirtualMachine
 
 // You must revise this path
-System.IO.Directory.SetCurrentDirectory @".";;
+System.IO.Directory.SetCurrentDirectory @"/Users/AndreasLauritzen/Documents/Skole/DTU/GuardedCommands/GuardedCommands";;
 
-tcP (parseFromFile "Ex5.gc")
+let _ = exec "Ex3.gc"

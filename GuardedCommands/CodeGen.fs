@@ -75,6 +75,10 @@ module CodeGeneration =
 
        | Ass(acc,e)       -> CA vEnv fEnv acc @ CE vEnv fEnv e @ [STI; INCSP -1]
 
+       | Alt (GC gc)
+
+       |
+
        | Block([],stms) ->   CSs vEnv fEnv stms
 
        | _                -> failwith "CS: this statement is not supported yet"
