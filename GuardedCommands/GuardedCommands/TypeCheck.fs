@@ -68,13 +68,18 @@ module TypeCheck =
 
    and tcGDec gtenv = function  
                       | VarDec(t,s)               -> Map.add s t gtenv
-                      | FunDec(topt,f, decs, stm) -> failwith "type check: function/procedure declarations not yet supported"
+                      | FunDec(topt,f, ls, stm)   -> tcFun topt f ls stm
+                      | _                         -> failwith "type check: function/procedure declarations not yet supported"
 
+   and tcFun topt f (dec:Dec list) stm = 
+         let unzipped = snd (List.unzip dec)
+         List.forall (fun name -> 2 > (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped
+ 
    and tcGDecs gtenv = function
                        | dec::decs -> tcGDecs (tcGDec gtenv dec) decs
                        | _         -> gtenv
 
-
+  
 /// tcP prog checks the well-typeness of a program prog
    and tcP(P(decs, stms)) = let gtenv = tcGDecs Map.empty decs
                             List.iter (tcS gtenv Map.empty) stms
