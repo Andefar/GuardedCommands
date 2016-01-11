@@ -17,9 +17,18 @@ module TypeCheck =
          | Apply(f,[e]) when List.exists (fun x ->  x=f) ["-";"!"]  
                                 -> tcMonadic gtenv ltenv f e        
          | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*"; "="; "&&";"-"]        
-                                -> tcDyadic gtenv ltenv f e1 e2   
-         | _                    -> failwith "tcE: not supported yet"
+                                -> tcDyadic gtenv ltenv f e1 e2 
+         //functions matches here
+         | Apply(f,elist)       -> match Map.tryFind f gtenv with
+                                       | None   -> failwith ("no declaration for function: " + f)
+                                       | Some t -> checkParams t elist
 
+         | _                    -> failwith "tcE: not supported yet"
+   
+   and checkParams (paramTypsList,funcTyp) elist = 
+       //every elem in paramTypsList must match every elem in elist else throw exception
+       //return the return type for the function
+   
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
                                    | ("!", BTyp) -> BTyp
@@ -68,12 +77,13 @@ module TypeCheck =
 
    and tcGDec gtenv = function  
                       | VarDec(t,s)               -> Map.add s t gtenv
-                      | FunDec(topt,f, ls, stm)   -> tcFun topt f ls stm
+//                      | FunDec(topt,f, decs, stm)   -> tcFun topt f decs stm gtenv
                       | _                         -> failwith "type check: function/procedure declarations not yet supported"
 
-   and tcFun topt f (dec:Dec list) stm = 
-         let unzipped = snd (List.unzip dec)
-         List.forall (fun name -> 2 > (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped
+//
+//   and tcFun topt f (dec:Dec list) stm = 
+//         let unzipped = snd (List.unzip dec)
+//         List.forall (fun name -> 2 > (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped
  
    and tcGDecs gtenv = function
                        | dec::decs -> tcGDecs (tcGDec gtenv dec) decs
