@@ -1,4 +1,4 @@
-# 1 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 1 "Lexer.fsl"
  
 module Lexer
 open System
@@ -21,11 +21,9 @@ let keyword s =
     | "od"        -> OD     
     | "true"      -> BOOL(true) 
     | "false"     -> BOOL(false)
-    | "function"  -> FUN
-    | "return"    -> RETURN
     | _           -> NAME s  
 
-# 28 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 26 "Lexer.fs"
 let trans : uint16[] array = 
     [| 
    (* State 0 *)
@@ -102,140 +100,140 @@ and tokenize  (lexbuf : Microsoft.FSharp.Text.Lexing.LexBuffer<_>) = _fslex_toke
 and _fslex_tokenize  _fslex_state lexbuf =
   match _fslex_tables.Interpret(_fslex_state,lexbuf) with
   | 0 -> ( 
-# 41 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 39 "Lexer.fsl"
                                  tokenize lexbuf 
-# 107 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 105 "Lexer.fs"
           )
   | 1 -> ( 
-# 42 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 40 "Lexer.fsl"
                                  lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf 
-# 112 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 110 "Lexer.fs"
           )
   | 2 -> ( 
-# 43 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 41 "Lexer.fsl"
                                  INT<| Int32.Parse(Encoding.UTF8.GetString(lexbuf.Lexeme)) 
-# 117 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 115 "Lexer.fs"
           )
   | 3 -> ( 
-# 44 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 42 "Lexer.fsl"
                                  LP  
-# 122 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 120 "Lexer.fs"
           )
   | 4 -> ( 
-# 45 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 43 "Lexer.fsl"
                                  RP  
-# 127 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 125 "Lexer.fs"
           )
   | 5 -> ( 
-# 46 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 44 "Lexer.fsl"
                                  LSP 
-# 132 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 130 "Lexer.fs"
           )
   | 6 -> ( 
-# 47 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 45 "Lexer.fsl"
                                  RSP 
-# 137 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 135 "Lexer.fs"
           )
   | 7 -> ( 
-# 48 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 46 "Lexer.fsl"
                                  LCP 
-# 142 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 140 "Lexer.fs"
           )
   | 8 -> ( 
-# 49 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 47 "Lexer.fsl"
                                  RCP 
-# 147 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 145 "Lexer.fs"
           )
   | 9 -> ( 
-# 50 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 48 "Lexer.fsl"
                                  COMMA 
-# 152 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 150 "Lexer.fs"
           )
   | 10 -> ( 
-# 51 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 49 "Lexer.fsl"
                                  SEMI  
-# 157 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 155 "Lexer.fs"
           )
   | 11 -> ( 
-# 52 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 50 "Lexer.fsl"
                                  COLON 
-# 162 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 160 "Lexer.fs"
           )
   | 12 -> ( 
-# 53 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 51 "Lexer.fsl"
                                  BAR 
-# 167 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 165 "Lexer.fs"
           )
   | 13 -> ( 
-# 54 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 52 "Lexer.fsl"
                                  TO 
-# 172 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 170 "Lexer.fs"
           )
   | 14 -> ( 
-# 55 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 53 "Lexer.fsl"
                                  ASG   
-# 177 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 175 "Lexer.fs"
           )
   | 15 -> ( 
-# 56 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 54 "Lexer.fsl"
                                  NEG 
-# 182 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 180 "Lexer.fs"
           )
   | 16 -> ( 
-# 57 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 55 "Lexer.fsl"
                                  AND 
-# 187 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 185 "Lexer.fs"
           )
   | 17 -> ( 
-# 58 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 56 "Lexer.fsl"
                                  NEQ 
-# 192 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 190 "Lexer.fs"
           )
   | 18 -> ( 
-# 59 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 57 "Lexer.fsl"
                                  LT 
-# 197 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 195 "Lexer.fs"
           )
   | 19 -> ( 
-# 60 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 58 "Lexer.fsl"
                                  GT 
-# 202 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 200 "Lexer.fs"
           )
   | 20 -> ( 
-# 61 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 59 "Lexer.fsl"
                                  LE 
-# 207 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 205 "Lexer.fs"
           )
   | 21 -> ( 
-# 62 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 60 "Lexer.fsl"
                                  TIMES 
-# 212 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 210 "Lexer.fs"
           )
   | 22 -> ( 
-# 63 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 61 "Lexer.fsl"
                                  MINUS 
-# 217 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 215 "Lexer.fs"
           )
   | 23 -> ( 
-# 64 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 62 "Lexer.fsl"
                                  EQ 
-# 222 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 220 "Lexer.fs"
           )
   | 24 -> ( 
-# 65 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 63 "Lexer.fsl"
                                  PLUS 
-# 227 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 225 "Lexer.fs"
           )
   | 25 -> ( 
-# 66 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 64 "Lexer.fsl"
                                  keyword(Encoding.UTF8.GetString(lexbuf.Lexeme)) 
-# 232 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 230 "Lexer.fs"
           )
   | 26 -> ( 
-# 67 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fsl"
+# 65 "Lexer.fsl"
                                  EOF 
-# 237 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 235 "Lexer.fs"
           )
   | _ -> failwith "tokenize"
 
-# 3000000 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Lexer.fs"
+# 3000000 "Lexer.fs"

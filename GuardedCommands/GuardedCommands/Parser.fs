@@ -3,11 +3,11 @@ module Parser
 #nowarn "64";; // turn off warnings that type variables used in production annotations are instantiated to concrete type
 open Microsoft.FSharp.Text.Lexing
 open Microsoft.FSharp.Text.Parsing.ParseHelpers
-# 1 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 1 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
 
 open GuardedCommands.Frontend.AST
 
-# 10 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 10 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
 // This type is the type of tokens accepted by the parser
 type token = 
   | HIGH
@@ -16,6 +16,8 @@ type token =
   | ASG
   | SKIP
   | ABORT
+  | FUN
+  | RETURN
   | NEG
   | PLUS
   | MINUS
@@ -57,6 +59,8 @@ type tokenId =
     | TOKEN_ASG
     | TOKEN_SKIP
     | TOKEN_ABORT
+    | TOKEN_FUN
+    | TOKEN_RETURN
     | TOKEN_NEG
     | TOKEN_PLUS
     | TOKEN_MINUS
@@ -101,6 +105,7 @@ type nonTerminalId =
     | NONTERM_BasicTyp
     | NONTERM_Typ
     | NONTERM_Dec
+    | NONTERM_FunDecl
     | NONTERM_DecL
     | NONTERM_DecList
     | NONTERM_Access
@@ -110,8 +115,10 @@ type nonTerminalId =
     | NONTERM_GuardedCommand
     | NONTERM_GCList
     | NONTERM_Exp
+    | NONTERM_ExpL
+    | NONTERM_ExpList
 
-// This function maps tokens to integers indexes
+// This function maps tokens to integer indexes
 let tagOfToken (t:token) = 
   match t with
   | HIGH  -> 0 
@@ -120,41 +127,43 @@ let tagOfToken (t:token) =
   | ASG  -> 3 
   | SKIP  -> 4 
   | ABORT  -> 5 
-  | NEG  -> 6 
-  | PLUS  -> 7 
-  | MINUS  -> 8 
-  | TIMES  -> 9 
-  | AND  -> 10 
-  | EQ  -> 11 
-  | LE  -> 12 
-  | LT  -> 13 
-  | GT  -> 14 
-  | NEQ  -> 15 
-  | COMMA  -> 16 
-  | COLON  -> 17 
-  | SEMI  -> 18 
-  | BAR  -> 19 
-  | TO  -> 20 
-  | IF  -> 21 
-  | FI  -> 22 
-  | DO  -> 23 
-  | OD  -> 24 
-  | BEGIN  -> 25 
-  | END  -> 26 
-  | LP  -> 27 
-  | LCP  -> 28 
-  | LSP  -> 29 
-  | RP  -> 30 
-  | RCP  -> 31 
-  | RSP  -> 32 
-  | ITYP  -> 33 
-  | BTYP  -> 34 
-  | NAME _ -> 35 
-  | STRING _ -> 36 
-  | BOOL _ -> 37 
-  | INT _ -> 38 
+  | FUN  -> 6 
+  | RETURN  -> 7 
+  | NEG  -> 8 
+  | PLUS  -> 9 
+  | MINUS  -> 10 
+  | TIMES  -> 11 
+  | AND  -> 12 
+  | EQ  -> 13 
+  | LE  -> 14 
+  | LT  -> 15 
+  | GT  -> 16 
+  | NEQ  -> 17 
+  | COMMA  -> 18 
+  | COLON  -> 19 
+  | SEMI  -> 20 
+  | BAR  -> 21 
+  | TO  -> 22 
+  | IF  -> 23 
+  | FI  -> 24 
+  | DO  -> 25 
+  | OD  -> 26 
+  | BEGIN  -> 27 
+  | END  -> 28 
+  | LP  -> 29 
+  | LCP  -> 30 
+  | LSP  -> 31 
+  | RP  -> 32 
+  | RCP  -> 33 
+  | RSP  -> 34 
+  | ITYP  -> 35 
+  | BTYP  -> 36 
+  | NAME _ -> 37 
+  | STRING _ -> 38 
+  | BOOL _ -> 39 
+  | INT _ -> 40 
 
-// This function maps integers indexes to symbolic token ids
+// This function maps integer indexes to symbolic token ids
 let tokenTagToTokenId (tokenIdx:int) = 
   match tokenIdx with
   | 0 -> TOKEN_HIGH 
@@ -163,41 +172,43 @@ let tokenTagToTokenId (tokenIdx:int) =
   | 3 -> TOKEN_ASG 
   | 4 -> TOKEN_SKIP 
   | 5 -> TOKEN_ABORT 
-  | 6 -> TOKEN_NEG 
-  | 7 -> TOKEN_PLUS 
-  | 8 -> TOKEN_MINUS 
-  | 9 -> TOKEN_TIMES 
-  | 10 -> TOKEN_AND 
-  | 11 -> TOKEN_EQ 
-  | 12 -> TOKEN_LE 
-  | 13 -> TOKEN_LT 
-  | 14 -> TOKEN_GT 
-  | 15 -> TOKEN_NEQ 
-  | 16 -> TOKEN_COMMA 
-  | 17 -> TOKEN_COLON 
-  | 18 -> TOKEN_SEMI 
-  | 19 -> TOKEN_BAR 
-  | 20 -> TOKEN_TO 
-  | 21 -> TOKEN_IF 
-  | 22 -> TOKEN_FI 
-  | 23 -> TOKEN_DO 
-  | 24 -> TOKEN_OD 
-  | 25 -> TOKEN_BEGIN 
-  | 26 -> TOKEN_END 
-  | 27 -> TOKEN_LP 
-  | 28 -> TOKEN_LCP 
-  | 29 -> TOKEN_LSP 
-  | 30 -> TOKEN_RP 
-  | 31 -> TOKEN_RCP 
-  | 32 -> TOKEN_RSP 
-  | 33 -> TOKEN_ITYP 
-  | 34 -> TOKEN_BTYP 
-  | 35 -> TOKEN_NAME 
-  | 36 -> TOKEN_STRING 
-  | 37 -> TOKEN_BOOL 
-  | 38 -> TOKEN_INT 
-  | 41 -> TOKEN_end_of_input
-  | 39 -> TOKEN_error
+  | 6 -> TOKEN_FUN 
+  | 7 -> TOKEN_RETURN 
+  | 8 -> TOKEN_NEG 
+  | 9 -> TOKEN_PLUS 
+  | 10 -> TOKEN_MINUS 
+  | 11 -> TOKEN_TIMES 
+  | 12 -> TOKEN_AND 
+  | 13 -> TOKEN_EQ 
+  | 14 -> TOKEN_LE 
+  | 15 -> TOKEN_LT 
+  | 16 -> TOKEN_GT 
+  | 17 -> TOKEN_NEQ 
+  | 18 -> TOKEN_COMMA 
+  | 19 -> TOKEN_COLON 
+  | 20 -> TOKEN_SEMI 
+  | 21 -> TOKEN_BAR 
+  | 22 -> TOKEN_TO 
+  | 23 -> TOKEN_IF 
+  | 24 -> TOKEN_FI 
+  | 25 -> TOKEN_DO 
+  | 26 -> TOKEN_OD 
+  | 27 -> TOKEN_BEGIN 
+  | 28 -> TOKEN_END 
+  | 29 -> TOKEN_LP 
+  | 30 -> TOKEN_LCP 
+  | 31 -> TOKEN_LSP 
+  | 32 -> TOKEN_RP 
+  | 33 -> TOKEN_RCP 
+  | 34 -> TOKEN_RSP 
+  | 35 -> TOKEN_ITYP 
+  | 36 -> TOKEN_BTYP 
+  | 37 -> TOKEN_NAME 
+  | 38 -> TOKEN_STRING 
+  | 39 -> TOKEN_BOOL 
+  | 40 -> TOKEN_INT 
+  | 43 -> TOKEN_end_of_input
+  | 41 -> TOKEN_error
   | _ -> failwith "tokenTagToTokenId: bad token"
 
 /// This function maps production indexes returned in syntax errors to strings representing the non terminal that would be produced by that production
@@ -212,29 +223,29 @@ let prodIdxToNonTerminal (prodIdx:int) =
     | 6 -> NONTERM_BasicTyp 
     | 7 -> NONTERM_Typ 
     | 8 -> NONTERM_Dec 
-    | 9 -> NONTERM_DecL 
-    | 10 -> NONTERM_DecL 
-    | 11 -> NONTERM_DecList 
-    | 12 -> NONTERM_DecList 
-    | 13 -> NONTERM_Access 
-    | 14 -> NONTERM_Stm 
-    | 15 -> NONTERM_Stm 
+    | 9 -> NONTERM_Dec 
+    | 10 -> NONTERM_FunDecl 
+    | 11 -> NONTERM_DecL 
+    | 12 -> NONTERM_DecL 
+    | 13 -> NONTERM_DecList 
+    | 14 -> NONTERM_DecList 
+    | 15 -> NONTERM_Access 
     | 16 -> NONTERM_Stm 
     | 17 -> NONTERM_Stm 
     | 18 -> NONTERM_Stm 
     | 19 -> NONTERM_Stm 
     | 20 -> NONTERM_Stm 
-    | 21 -> NONTERM_StmL 
-    | 22 -> NONTERM_StmL 
-    | 23 -> NONTERM_StmList 
-    | 24 -> NONTERM_StmList 
-    | 25 -> NONTERM_GuardedCommand 
-    | 26 -> NONTERM_GuardedCommand 
-    | 27 -> NONTERM_GCList 
-    | 28 -> NONTERM_GCList 
-    | 29 -> NONTERM_Exp 
-    | 30 -> NONTERM_Exp 
-    | 31 -> NONTERM_Exp 
+    | 21 -> NONTERM_Stm 
+    | 22 -> NONTERM_Stm 
+    | 23 -> NONTERM_Stm 
+    | 24 -> NONTERM_StmL 
+    | 25 -> NONTERM_StmL 
+    | 26 -> NONTERM_StmList 
+    | 27 -> NONTERM_StmList 
+    | 28 -> NONTERM_GuardedCommand 
+    | 29 -> NONTERM_GuardedCommand 
+    | 30 -> NONTERM_GCList 
+    | 31 -> NONTERM_GCList 
     | 32 -> NONTERM_Exp 
     | 33 -> NONTERM_Exp 
     | 34 -> NONTERM_Exp 
@@ -247,10 +258,18 @@ let prodIdxToNonTerminal (prodIdx:int) =
     | 41 -> NONTERM_Exp 
     | 42 -> NONTERM_Exp 
     | 43 -> NONTERM_Exp 
+    | 44 -> NONTERM_Exp 
+    | 45 -> NONTERM_Exp 
+    | 46 -> NONTERM_Exp 
+    | 47 -> NONTERM_Exp 
+    | 48 -> NONTERM_ExpL 
+    | 49 -> NONTERM_ExpL 
+    | 50 -> NONTERM_ExpList 
+    | 51 -> NONTERM_ExpList 
     | _ -> failwith "prodIdxToNonTerminal: bad production index"
 
-let _fsyacc_endOfInputTag = 41 
-let _fsyacc_tagOfErrorTerminal = 39
+let _fsyacc_endOfInputTag = 43 
+let _fsyacc_tagOfErrorTerminal = 41
 
 // This function gets the name of a token as a string
 let token_to_string (t:token) = 
@@ -261,6 +280,8 @@ let token_to_string (t:token) =
   | ASG  -> "ASG" 
   | SKIP  -> "SKIP" 
   | ABORT  -> "ABORT" 
+  | FUN  -> "FUN" 
+  | RETURN  -> "RETURN" 
   | NEG  -> "NEG" 
   | PLUS  -> "PLUS" 
   | MINUS  -> "MINUS" 
@@ -304,6 +325,8 @@ let _fsyacc_dataOfToken (t:token) =
   | ASG  -> (null : System.Object) 
   | SKIP  -> (null : System.Object) 
   | ABORT  -> (null : System.Object) 
+  | FUN  -> (null : System.Object) 
+  | RETURN  -> (null : System.Object) 
   | NEG  -> (null : System.Object) 
   | PLUS  -> (null : System.Object) 
   | MINUS  -> (null : System.Object) 
@@ -337,18 +360,18 @@ let _fsyacc_dataOfToken (t:token) =
   | STRING _fsyacc_x -> Microsoft.FSharp.Core.Operators.box _fsyacc_x 
   | BOOL _fsyacc_x -> Microsoft.FSharp.Core.Operators.box _fsyacc_x 
   | INT _fsyacc_x -> Microsoft.FSharp.Core.Operators.box _fsyacc_x 
-let _fsyacc_gotos = [| 0us; 65535us; 0us; 65535us; 1us; 65535us; 0us; 1us; 2us; 65535us; 0us; 4us; 2us; 3us; 1us; 65535us; 18us; 15us; 1us; 65535us; 18us; 19us; 2us; 65535us; 6us; 20us; 21us; 20us; 0us; 65535us; 2us; 65535us; 6us; 7us; 21us; 22us; 22us; 65535us; 6us; 26us; 8us; 26us; 24us; 50us; 27us; 50us; 31us; 26us; 34us; 50us; 37us; 50us; 42us; 26us; 46us; 26us; 48us; 50us; 53us; 50us; 56us; 50us; 58us; 50us; 69us; 50us; 70us; 50us; 71us; 50us; 72us; 50us; 73us; 50us; 74us; 50us; 75us; 50us; 76us; 50us; 77us; 50us; 5us; 65535us; 6us; 41us; 8us; 41us; 31us; 41us; 42us; 41us; 46us; 41us; 4us; 65535us; 6us; 11us; 8us; 9us; 31us; 32us; 46us; 47us; 5us; 65535us; 6us; 40us; 8us; 40us; 31us; 40us; 42us; 43us; 46us; 40us; 2us; 65535us; 34us; 35us; 37us; 38us; 3us; 65535us; 34us; 44us; 37us; 44us; 48us; 49us; 17us; 65535us; 24us; 25us; 27us; 28us; 34us; 45us; 37us; 45us; 48us; 45us; 53us; 54us; 56us; 57us; 58us; 59us; 69us; 60us; 70us; 61us; 71us; 62us; 72us; 63us; 73us; 64us; 74us; 65us; 75us; 66us; 76us; 67us; 77us; 68us; |]
-let _fsyacc_sparseGotoTableRowOffsets = [|0us; 1us; 2us; 4us; 7us; 9us; 11us; 14us; 15us; 18us; 41us; 47us; 52us; 58us; 61us; 65us; |]
-let _fsyacc_stateToProdIdxsTableElements = [| 1us; 0us; 1us; 0us; 1us; 1us; 1us; 1us; 1us; 2us; 1us; 2us; 2us; 3us; 4us; 1us; 3us; 1us; 3us; 1us; 3us; 1us; 3us; 1us; 4us; 1us; 4us; 1us; 5us; 1us; 6us; 1us; 7us; 1us; 8us; 2us; 8us; 13us; 1us; 8us; 1us; 8us; 2us; 11us; 12us; 1us; 12us; 1us; 12us; 1us; 13us; 1us; 14us; 10us; 14us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 1us; 15us; 1us; 15us; 10us; 15us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 1us; 16us; 1us; 17us; 1us; 18us; 1us; 18us; 1us; 18us; 1us; 19us; 1us; 19us; 1us; 19us; 1us; 20us; 1us; 20us; 1us; 20us; 1us; 22us; 2us; 23us; 24us; 1us; 24us; 1us; 24us; 1us; 26us; 11us; 27us; 28us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 2us; 27us; 28us; 2us; 27us; 28us; 1us; 28us; 1us; 28us; 1us; 29us; 1us; 30us; 1us; 31us; 1us; 32us; 10us; 32us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 1us; 32us; 1us; 33us; 10us; 33us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 1us; 34us; 10us; 34us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 38us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 39us; 39us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 39us; 40us; 40us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 41us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 42us; 43us; 10us; 35us; 36us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 43us; 1us; 35us; 1us; 36us; 1us; 37us; 1us; 38us; 1us; 39us; 1us; 40us; 1us; 41us; 1us; 42us; 1us; 43us; |]
-let _fsyacc_stateToProdIdxsTableRowOffsets = [|0us; 2us; 4us; 6us; 8us; 10us; 12us; 15us; 17us; 19us; 21us; 23us; 25us; 27us; 29us; 31us; 33us; 35us; 38us; 40us; 42us; 45us; 47us; 49us; 51us; 53us; 64us; 66us; 68us; 79us; 81us; 83us; 85us; 87us; 89us; 91us; 93us; 95us; 97us; 99us; 101us; 103us; 106us; 108us; 110us; 112us; 124us; 127us; 130us; 132us; 134us; 136us; 138us; 140us; 142us; 153us; 155us; 157us; 168us; 170us; 181us; 192us; 203us; 214us; 225us; 236us; 247us; 258us; 269us; 280us; 282us; 284us; 286us; 288us; 290us; 292us; 294us; 296us; |]
-let _fsyacc_action_rows = 78
-let _fsyacc_actionTableElements = [|1us; 32768us; 25us; 6us; 0us; 49152us; 1us; 32768us; 25us; 6us; 0us; 49152us; 1us; 32768us; 1us; 5us; 0us; 16386us; 7us; 16405us; 2us; 24us; 4us; 29us; 5us; 30us; 21us; 34us; 23us; 37us; 28us; 31us; 35us; 17us; 1us; 32768us; 18us; 8us; 7us; 16405us; 2us; 24us; 4us; 29us; 5us; 30us; 21us; 34us; 23us; 37us; 28us; 31us; 35us; 23us; 1us; 32768us; 26us; 10us; 0us; 16387us; 1us; 32768us; 26us; 12us; 0us; 16388us; 0us; 16389us; 0us; 16390us; 0us; 16391us; 1us; 32768us; 17us; 18us; 1us; 16397us; 17us; 18us; 2us; 32768us; 33us; 14us; 34us; 13us; 0us; 16392us; 1us; 16395us; 16us; 21us; 1us; 32768us; 35us; 16us; 0us; 16396us; 0us; 16397us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 9us; 16398us; 7us; 70us; 8us; 71us; 9us; 69us; 10us; 72us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 1us; 32768us; 3us; 27us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 9us; 16399us; 7us; 70us; 8us; 71us; 9us; 69us; 10us; 72us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 0us; 16400us; 0us; 16401us; 7us; 16405us; 2us; 24us; 4us; 29us; 5us; 30us; 21us; 34us; 23us; 37us; 28us; 31us; 35us; 23us; 1us; 32768us; 31us; 33us; 0us; 16402us; 6us; 16409us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 1us; 32768us; 22us; 36us; 0us; 16403us; 6us; 16409us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 1us; 32768us; 24us; 39us; 0us; 16404us; 0us; 16406us; 1us; 16407us; 18us; 42us; 7us; 32768us; 2us; 24us; 4us; 29us; 5us; 30us; 21us; 34us; 23us; 37us; 28us; 31us; 35us; 23us; 0us; 16408us; 0us; 16410us; 10us; 32768us; 7us; 70us; 8us; 71us; 9us; 69us; 10us; 72us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 20us; 46us; 7us; 16405us; 2us; 24us; 4us; 29us; 5us; 30us; 21us; 34us; 23us; 37us; 28us; 31us; 35us; 23us; 1us; 16411us; 19us; 48us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 0us; 16412us; 0us; 16413us; 0us; 16414us; 0us; 16415us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 10us; 32768us; 7us; 70us; 8us; 71us; 9us; 69us; 10us; 72us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 30us; 55us; 0us; 16416us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 1us; 16417us; 9us; 69us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 8us; 16418us; 7us; 70us; 8us; 71us; 9us; 69us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 0us; 16419us; 1us; 16420us; 9us; 69us; 1us; 16421us; 9us; 69us; 8us; 16422us; 7us; 70us; 8us; 71us; 9us; 69us; 11us; 73us; 12us; 74us; 13us; 76us; 14us; 75us; 15us; 77us; 3us; 16423us; 7us; 70us; 8us; 71us; 9us; 69us; 3us; 16424us; 7us; 70us; 8us; 71us; 9us; 69us; 3us; 16425us; 7us; 70us; 8us; 71us; 9us; 69us; 3us; 16426us; 7us; 70us; 8us; 71us; 9us; 69us; 3us; 16427us; 7us; 70us; 8us; 71us; 9us; 69us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; 6us; 32768us; 6us; 58us; 8us; 56us; 27us; 53us; 35us; 23us; 37us; 52us; 38us; 51us; |]
-let _fsyacc_actionTableRowOffsets = [|0us; 2us; 3us; 5us; 6us; 8us; 9us; 17us; 19us; 27us; 29us; 30us; 32us; 33us; 34us; 35us; 36us; 38us; 40us; 43us; 44us; 46us; 48us; 49us; 50us; 57us; 67us; 69us; 76us; 86us; 87us; 88us; 96us; 98us; 99us; 106us; 108us; 109us; 116us; 118us; 119us; 120us; 122us; 130us; 131us; 132us; 143us; 151us; 153us; 160us; 161us; 162us; 163us; 164us; 171us; 182us; 183us; 190us; 192us; 199us; 208us; 209us; 211us; 213us; 222us; 226us; 230us; 234us; 238us; 242us; 249us; 256us; 263us; 270us; 277us; 284us; 291us; 298us; |]
-let _fsyacc_reductionSymbolCounts = [|1us; 1us; 2us; 5us; 3us; 1us; 1us; 1us; 3us; 0us; 1us; 1us; 3us; 1us; 2us; 3us; 1us; 1us; 3us; 3us; 3us; 0us; 1us; 1us; 3us; 0us; 1us; 3us; 5us; 1us; 1us; 1us; 3us; 2us; 2us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; |]
-let _fsyacc_productionToNonTerminalTable = [|0us; 1us; 2us; 3us; 3us; 4us; 4us; 5us; 6us; 7us; 7us; 8us; 8us; 9us; 10us; 10us; 10us; 10us; 10us; 10us; 10us; 11us; 11us; 12us; 12us; 13us; 13us; 14us; 14us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; 15us; |]
-let _fsyacc_immediateActions = [|65535us; 49152us; 65535us; 49152us; 65535us; 16386us; 65535us; 65535us; 65535us; 65535us; 16387us; 65535us; 16388us; 16389us; 16390us; 16391us; 65535us; 65535us; 65535us; 16392us; 65535us; 65535us; 16396us; 16397us; 65535us; 65535us; 65535us; 65535us; 65535us; 16400us; 16401us; 65535us; 65535us; 16402us; 65535us; 65535us; 16403us; 65535us; 65535us; 16404us; 16406us; 65535us; 65535us; 16408us; 16410us; 65535us; 65535us; 65535us; 65535us; 16412us; 16413us; 16414us; 16415us; 65535us; 65535us; 16416us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; |]
+let _fsyacc_gotos = [| 0us; 65535us; 0us; 65535us; 1us; 65535us; 0us; 1us; 2us; 65535us; 0us; 4us; 2us; 3us; 2us; 65535us; 18us; 15us; 26us; 15us; 2us; 65535us; 18us; 19us; 26us; 27us; 3us; 65535us; 6us; 31us; 23us; 31us; 32us; 31us; 3us; 65535us; 6us; 20us; 23us; 20us; 32us; 20us; 1us; 65535us; 23us; 24us; 3us; 65535us; 6us; 7us; 23us; 30us; 32us; 33us; 26us; 65535us; 6us; 38us; 8us; 38us; 28us; 38us; 36us; 64us; 39us; 64us; 43us; 38us; 46us; 64us; 49us; 64us; 52us; 64us; 56us; 38us; 60us; 38us; 62us; 64us; 67us; 64us; 70us; 64us; 72us; 64us; 84us; 64us; 85us; 64us; 86us; 64us; 87us; 64us; 88us; 64us; 89us; 64us; 90us; 64us; 91us; 64us; 92us; 64us; 93us; 64us; 97us; 64us; 6us; 65535us; 6us; 55us; 8us; 55us; 28us; 29us; 43us; 55us; 56us; 55us; 60us; 55us; 4us; 65535us; 6us; 11us; 8us; 9us; 43us; 44us; 60us; 61us; 5us; 65535us; 6us; 54us; 8us; 54us; 43us; 54us; 56us; 57us; 60us; 54us; 2us; 65535us; 46us; 47us; 49us; 50us; 3us; 65535us; 46us; 58us; 49us; 58us; 62us; 63us; 20us; 65535us; 36us; 37us; 39us; 40us; 46us; 59us; 49us; 59us; 52us; 53us; 62us; 59us; 67us; 68us; 70us; 71us; 72us; 73us; 84us; 74us; 85us; 75us; 86us; 76us; 87us; 77us; 88us; 78us; 89us; 79us; 90us; 80us; 91us; 81us; 92us; 82us; 93us; 83us; 97us; 83us; 1us; 65535us; 93us; 94us; 2us; 65535us; 93us; 96us; 97us; 98us; |]
+let _fsyacc_sparseGotoTableRowOffsets = [|0us; 1us; 2us; 4us; 7us; 10us; 13us; 17us; 21us; 23us; 27us; 54us; 61us; 66us; 72us; 75us; 79us; 100us; 102us; |]
+let _fsyacc_stateToProdIdxsTableElements = [| 1us; 0us; 1us; 0us; 1us; 1us; 1us; 1us; 1us; 2us; 1us; 2us; 2us; 3us; 4us; 1us; 3us; 1us; 3us; 1us; 3us; 1us; 3us; 1us; 4us; 1us; 4us; 1us; 5us; 1us; 6us; 1us; 7us; 1us; 8us; 2us; 8us; 15us; 1us; 8us; 1us; 8us; 1us; 9us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 10us; 1us; 12us; 2us; 13us; 14us; 1us; 14us; 1us; 14us; 1us; 15us; 2us; 15us; 47us; 1us; 16us; 10us; 16us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 1us; 17us; 1us; 17us; 10us; 17us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 1us; 18us; 1us; 19us; 1us; 20us; 1us; 20us; 1us; 20us; 1us; 21us; 1us; 21us; 1us; 21us; 1us; 22us; 1us; 22us; 1us; 22us; 1us; 23us; 10us; 23us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 1us; 25us; 2us; 26us; 27us; 1us; 27us; 1us; 27us; 1us; 29us; 11us; 30us; 31us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 2us; 30us; 31us; 2us; 30us; 31us; 1us; 31us; 1us; 31us; 1us; 32us; 1us; 33us; 1us; 34us; 1us; 35us; 10us; 35us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 1us; 35us; 1us; 36us; 10us; 36us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 1us; 37us; 10us; 37us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 41us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 42us; 42us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 42us; 43us; 43us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 44us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 45us; 46us; 10us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 46us; 11us; 38us; 39us; 40us; 41us; 42us; 43us; 44us; 45us; 46us; 50us; 51us; 1us; 38us; 1us; 39us; 1us; 40us; 1us; 41us; 1us; 42us; 1us; 43us; 1us; 44us; 1us; 45us; 1us; 46us; 1us; 47us; 1us; 47us; 1us; 47us; 1us; 49us; 1us; 51us; 1us; 51us; |]
+let _fsyacc_stateToProdIdxsTableRowOffsets = [|0us; 2us; 4us; 6us; 8us; 10us; 12us; 15us; 17us; 19us; 21us; 23us; 25us; 27us; 29us; 31us; 33us; 35us; 38us; 40us; 42us; 44us; 46us; 48us; 50us; 52us; 54us; 56us; 58us; 60us; 62us; 64us; 67us; 69us; 71us; 73us; 76us; 78us; 89us; 91us; 93us; 104us; 106us; 108us; 110us; 112us; 114us; 116us; 118us; 120us; 122us; 124us; 126us; 128us; 139us; 141us; 144us; 146us; 148us; 150us; 162us; 165us; 168us; 170us; 172us; 174us; 176us; 178us; 180us; 191us; 193us; 195us; 206us; 208us; 219us; 230us; 241us; 252us; 263us; 274us; 285us; 296us; 307us; 318us; 330us; 332us; 334us; 336us; 338us; 340us; 342us; 344us; 346us; 348us; 350us; 352us; 354us; 356us; 358us; |]
+let _fsyacc_action_rows = 99
+let _fsyacc_actionTableElements = [|1us; 32768us; 27us; 6us; 0us; 49152us; 1us; 32768us; 27us; 6us; 0us; 49152us; 1us; 32768us; 1us; 5us; 0us; 16386us; 9us; 16408us; 2us; 36us; 4us; 41us; 5us; 42us; 6us; 21us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 17us; 1us; 32768us; 20us; 8us; 8us; 16408us; 2us; 36us; 4us; 41us; 5us; 42us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 34us; 1us; 32768us; 28us; 10us; 0us; 16387us; 1us; 32768us; 28us; 12us; 0us; 16388us; 0us; 16389us; 0us; 16390us; 0us; 16391us; 1us; 32768us; 19us; 18us; 1us; 16399us; 19us; 18us; 2us; 32768us; 35us; 14us; 36us; 13us; 0us; 16392us; 0us; 16393us; 1us; 32768us; 37us; 22us; 1us; 32768us; 29us; 23us; 2us; 16395us; 6us; 21us; 37us; 16us; 1us; 32768us; 32us; 25us; 1us; 32768us; 19us; 26us; 2us; 32768us; 35us; 14us; 36us; 13us; 1us; 32768us; 13us; 28us; 8us; 32768us; 2us; 36us; 4us; 41us; 5us; 42us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 34us; 0us; 16394us; 0us; 16396us; 1us; 16397us; 18us; 32us; 2us; 32768us; 6us; 21us; 37us; 16us; 0us; 16398us; 0us; 16399us; 1us; 16399us; 29us; 93us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 9us; 16400us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 1us; 32768us; 3us; 39us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 9us; 16401us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 0us; 16402us; 0us; 16403us; 8us; 16408us; 2us; 36us; 4us; 41us; 5us; 42us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 34us; 1us; 32768us; 33us; 45us; 0us; 16404us; 6us; 16412us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 1us; 32768us; 24us; 48us; 0us; 16405us; 6us; 16412us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 1us; 32768us; 26us; 51us; 0us; 16406us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 9us; 16407us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 0us; 16409us; 1us; 16410us; 20us; 56us; 8us; 32768us; 2us; 36us; 4us; 41us; 5us; 42us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 34us; 0us; 16411us; 0us; 16413us; 10us; 32768us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 22us; 60us; 8us; 16408us; 2us; 36us; 4us; 41us; 5us; 42us; 7us; 52us; 23us; 46us; 25us; 49us; 30us; 43us; 37us; 34us; 1us; 16414us; 21us; 62us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 0us; 16415us; 0us; 16416us; 0us; 16417us; 0us; 16418us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 10us; 32768us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 32us; 69us; 0us; 16419us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 1us; 16420us; 11us; 84us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 8us; 16421us; 9us; 85us; 10us; 86us; 11us; 84us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 0us; 16422us; 1us; 16423us; 11us; 84us; 1us; 16424us; 11us; 84us; 8us; 16425us; 9us; 85us; 10us; 86us; 11us; 84us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 3us; 16426us; 9us; 85us; 10us; 86us; 11us; 84us; 3us; 16427us; 9us; 85us; 10us; 86us; 11us; 84us; 3us; 16428us; 9us; 85us; 10us; 86us; 11us; 84us; 3us; 16429us; 9us; 85us; 10us; 86us; 11us; 84us; 3us; 16430us; 9us; 85us; 10us; 86us; 11us; 84us; 10us; 16434us; 9us; 85us; 10us; 86us; 11us; 84us; 12us; 87us; 13us; 88us; 14us; 89us; 15us; 91us; 16us; 90us; 17us; 92us; 18us; 97us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 6us; 16432us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 1us; 32768us; 32us; 95us; 0us; 16431us; 0us; 16433us; 6us; 32768us; 8us; 72us; 10us; 70us; 29us; 67us; 37us; 35us; 39us; 66us; 40us; 65us; 0us; 16435us; |]
+let _fsyacc_actionTableRowOffsets = [|0us; 2us; 3us; 5us; 6us; 8us; 9us; 19us; 21us; 30us; 32us; 33us; 35us; 36us; 37us; 38us; 39us; 41us; 43us; 46us; 47us; 48us; 50us; 52us; 55us; 57us; 59us; 62us; 64us; 73us; 74us; 75us; 77us; 80us; 81us; 82us; 84us; 91us; 101us; 103us; 110us; 120us; 121us; 122us; 131us; 133us; 134us; 141us; 143us; 144us; 151us; 153us; 154us; 161us; 171us; 172us; 174us; 183us; 184us; 185us; 196us; 205us; 207us; 214us; 215us; 216us; 217us; 218us; 225us; 236us; 237us; 244us; 246us; 253us; 262us; 263us; 265us; 267us; 276us; 280us; 284us; 288us; 292us; 296us; 307us; 314us; 321us; 328us; 335us; 342us; 349us; 356us; 363us; 370us; 377us; 379us; 380us; 381us; 388us; |]
+let _fsyacc_reductionSymbolCounts = [|1us; 1us; 2us; 5us; 3us; 1us; 1us; 1us; 3us; 1us; 9us; 0us; 1us; 1us; 3us; 1us; 2us; 3us; 1us; 1us; 3us; 3us; 3us; 2us; 0us; 1us; 1us; 3us; 0us; 1us; 3us; 5us; 1us; 1us; 1us; 3us; 2us; 2us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; 3us; 4us; 0us; 1us; 1us; 3us; |]
+let _fsyacc_productionToNonTerminalTable = [|0us; 1us; 2us; 3us; 3us; 4us; 4us; 5us; 6us; 6us; 7us; 8us; 8us; 9us; 9us; 10us; 11us; 11us; 11us; 11us; 11us; 11us; 11us; 11us; 12us; 12us; 13us; 13us; 14us; 14us; 15us; 15us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 16us; 17us; 17us; 18us; 18us; |]
+let _fsyacc_immediateActions = [|65535us; 49152us; 65535us; 49152us; 65535us; 16386us; 65535us; 65535us; 65535us; 65535us; 16387us; 65535us; 16388us; 16389us; 16390us; 16391us; 65535us; 65535us; 65535us; 16392us; 16393us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 16394us; 16396us; 65535us; 65535us; 16398us; 16399us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 16402us; 16403us; 65535us; 65535us; 16404us; 65535us; 65535us; 16405us; 65535us; 65535us; 16406us; 65535us; 65535us; 16409us; 65535us; 65535us; 16411us; 16413us; 65535us; 65535us; 65535us; 65535us; 16415us; 16416us; 16417us; 16418us; 65535us; 65535us; 16419us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 16431us; 16433us; 65535us; 16435us; |]
 let _fsyacc_reductions ()  =    [| 
-# 351 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 374 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Program)) in
             Microsoft.FSharp.Core.Operators.box
@@ -357,7 +380,7 @@ let _fsyacc_reductions ()  =    [|
                       raise (Microsoft.FSharp.Text.Parsing.Accept(Microsoft.FSharp.Core.Operators.box _1))
                    )
                  : '_startMain));
-# 360 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 383 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Program)) in
             Microsoft.FSharp.Core.Operators.box
@@ -366,292 +389,328 @@ let _fsyacc_reductions ()  =    [|
                       raise (Microsoft.FSharp.Text.Parsing.Accept(Microsoft.FSharp.Core.Operators.box _1))
                    )
                  : '_startProg));
-# 369 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 392 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Program)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 38 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 38 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                               _1 
                    )
-# 38 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 38 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Program));
-# 380 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 403 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Dec list)) in
             let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 41 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 41 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                               P(_2, _4) 
                    )
-# 41 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 41 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Program));
-# 392 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 415 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 42 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 42 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                               P([], _2) 
                    )
-# 42 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 42 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Program));
-# 403 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 426 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 45 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 45 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              BTyp 
                    )
-# 45 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 45 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Typ));
-# 413 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 436 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 46 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 46 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              ITyp 
                    )
-# 46 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 46 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Typ));
-# 423 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 446 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Typ)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 49 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 49 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _1 
                    )
-# 49 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 49 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Typ));
-# 434 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 457 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : string)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Typ)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 52 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 52 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              VarDec(_3,_1) 
                    )
-# 52 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 52 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Dec));
-# 446 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 469 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'FunDecl)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 53 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                           _1 
+                   )
+# 53 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : Dec));
+# 480 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : string)) in
+            let _4 = (let data = parseState.GetInput(4) in (Microsoft.FSharp.Core.Operators.unbox data : Dec list)) in
+            let _7 = (let data = parseState.GetInput(7) in (Microsoft.FSharp.Core.Operators.unbox data : Typ)) in
+            let _9 = (let data = parseState.GetInput(9) in (Microsoft.FSharp.Core.Operators.unbox data : Stm)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 56 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             FunDec(Some(_7),_2,_4,_9) 
+                   )
+# 56 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : 'FunDecl));
+# 494 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 55 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 60 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              [] 
                    )
-# 55 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 60 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Dec list));
-# 456 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 504 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Dec list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 56 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 61 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _1 
                    )
-# 56 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 61 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Dec list));
-# 467 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 515 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Dec)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 59 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 64 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              [_1] 
                    )
-# 59 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 64 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Dec list));
-# 478 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 526 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Dec)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Dec list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 60 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 65 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _1 :: _3 
                    )
-# 60 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 65 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Dec list));
-# 490 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 538 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : string)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 63 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 68 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              AVar _1 
                    )
-# 63 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 68 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Access));
-# 501 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 549 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 66 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 71 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              PrintLn _2 
                    )
-# 66 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 71 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 512 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 560 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Access)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 67 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 72 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Ass(_1,_3)  
                    )
-# 67 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 72 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 524 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 572 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 68 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 73 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Do (GC []) 
                    )
-# 68 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 73 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 534 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 582 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 69 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 74 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Alt (GC []) 
                    )
-# 69 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 74 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 544 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 592 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 70 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 75 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Block([], _2) 
                    )
-# 70 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 75 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 555 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 603 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : GuardedCommand)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 71 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 76 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Alt _2 
                    )
-# 71 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 76 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 566 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 614 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : GuardedCommand)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 72 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 77 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Do _2  
                    )
-# 72 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 77 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm));
-# 577 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 625 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 78 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                       Return(Some(_2)) 
+                   )
+# 78 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : Stm));
+# 636 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 75 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 81 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              [] 
                    )
-# 75 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 81 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm list));
-# 587 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 646 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 76 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 82 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _1 
                    )
-# 76 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 82 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm list));
-# 598 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 657 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Stm)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 79 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 85 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              [_1] 
                    )
-# 79 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 85 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm list));
-# 609 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 668 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Stm)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 80 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 86 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _1 :: _3 
                    )
-# 80 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 86 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Stm list));
-# 621 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 680 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 83 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 89 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              GC [] 
                    )
-# 83 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 89 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : GuardedCommand));
-# 631 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 690 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : (Exp * Stm list) list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 84 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 90 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              GC _1 
                    )
-# 84 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 90 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : GuardedCommand));
-# 642 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 701 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 87 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 93 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              [(_1,_3)]   
                    )
-# 87 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 93 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : (Exp * Stm list) list));
-# 654 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 713 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Stm list)) in
@@ -659,187 +718,243 @@ let _fsyacc_reductions ()  =    [|
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 88 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 94 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                          (_1,_3)::_5 
                    )
-# 88 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 94 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : (Exp * Stm list) list));
-# 667 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 726 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Access)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 91 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 97 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Access _1 
                    )
-# 91 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 97 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 678 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 737 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : int)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 92 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 98 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              N _1 
                    )
-# 92 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 98 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 689 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 748 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : bool)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 93 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 99 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              B _1 
                    )
-# 93 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 99 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 700 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 759 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 94 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 100 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              _2 
                    )
-# 94 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 100 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 711 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 770 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 95 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 101 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("-", [_2])
                    )
-# 95 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 101 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 722 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 781 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _2 = (let data = parseState.GetInput(2) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 96 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 102 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("!", [_2])
                    )
-# 96 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 102 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 733 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 792 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 97 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 103 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("*", [_1; _3])
                    )
-# 97 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 103 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 745 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 804 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 98 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 104 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("+", [_1; _3])
                    )
-# 98 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 104 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 757 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 816 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 99 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 105 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("-", [_1; _3])
                    )
-# 99 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 105 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 769 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 828 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 100 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 106 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("&&", [_1; _3])
                    )
-# 100 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 106 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 781 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 840 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 101 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 107 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("=", [_1; _3])
                    )
-# 101 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 107 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 793 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 852 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 102 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 108 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("<=", [_1; _3])
                    )
-# 102 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 108 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 805 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 864 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 103 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 109 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply(">", [_1; _3])
                    )
-# 103 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 109 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 817 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 876 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 104 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 110 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("<", [_1; _3])
                    )
-# 104 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 110 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
-# 829 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 888 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
         (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
             let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 105 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 111 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                                                              Apply("<>", [_1; _3])
                    )
-# 105 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fsy"
+# 111 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
                  : Exp));
+# 900 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : string)) in
+            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'ExpL)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 112 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             Apply(_1,_3) 
+                   )
+# 112 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : Exp));
+# 912 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 115 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             [] 
+                   )
+# 115 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : 'ExpL));
+# 922 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : 'ExpList)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 116 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             _1 
+                   )
+# 116 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : 'ExpL));
+# 933 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 119 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             [_1] 
+                   )
+# 119 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : 'ExpList));
+# 944 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
+        (fun (parseState : Microsoft.FSharp.Text.Parsing.IParseState) ->
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : Exp)) in
+            let _3 = (let data = parseState.GetInput(3) in (Microsoft.FSharp.Core.Operators.unbox data : 'ExpList)) in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 120 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                                                             _1::_3 
+                   )
+# 120 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fsy"
+                 : 'ExpList));
 |]
-# 842 "C:\Users\mire\Documents\MRH data\Kurser\02257-16\GuardedCommandsVersion2\GuardedCommands\GuardedCommands\Parser.fs"
+# 957 "C:\Users\Silas\Dropbox\5. Semester\02257 - Anvendt funktionsprogrammering\Project 2\GuardedCommands\GuardedCommands\GuardedCommands\Parser.fs"
 let tables () : Microsoft.FSharp.Text.Parsing.Tables<_> = 
   { reductions= _fsyacc_reductions ();
     endOfInputTag = _fsyacc_endOfInputTag;
@@ -858,7 +973,7 @@ let tables () : Microsoft.FSharp.Text.Parsing.Tables<_> =
                               match parse_error_rich with 
                               | Some f -> f ctxt
                               | None -> parse_error ctxt.Message);
-    numTerminals = 42;
+    numTerminals = 44;
     productionToNonTerminalTable = _fsyacc_productionToNonTerminalTable  }
 let engine lexer lexbuf startState = (tables ()).Interpret(lexer, lexbuf, startState)
 let Main lexer lexbuf : Program =
