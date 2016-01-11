@@ -77,6 +77,9 @@ module TypeCheck =
 
    and tcGDec gtenv = function  
                       | VarDec(t,s)               -> Map.add s t gtenv
+                      //her skal man returnere en ftyp(typ list,some typ) som skal addes til det globe env (gtenv)
+                      //check samtidig at return e, returnere det samme som "some typ" (functionens return type)
+                      // check her at params er unikke og at hvert stm er well typed
 //                      | FunDec(topt,f, decs, stm)   -> tcFun topt f decs stm gtenv
                       | _                         -> failwith "type check: function/procedure declarations not yet supported"
 
