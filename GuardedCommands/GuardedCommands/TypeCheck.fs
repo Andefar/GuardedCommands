@@ -19,22 +19,28 @@ module TypeCheck =
          | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*"; "="; "&&";"-"]        
                                 -> tcDyadic gtenv ltenv f e1 e2 
          //functions matches here
-         | Apply(f,elist)       -> match Map.find f gtenv with
-                                    | FTyp(t1,t2) -> checkParams f (t1,t2) elist gtenv ltenv 
-                                    | _      -> failwith ("tcE: no function with this name: " + f)
+         | Apply(f,elist)       -> checkParams f elist gtenv ltenv
+         
+//         match Map.find f gtenv with
+//                                    | FTyp(t1,Some t) -> checkParams f (t1,t) elist gtenv ltenv
+//                                                         t
+//                                    | _               -> failwith ("tcE: no function with this name: " + f)
          | _                    -> failwith "tcE: not supported yet"
    
-   and checkParams f (paramTypList,funcTyp) elist gtenv ltenv = 
-       let callTypes = List.map (tcE gtenv ltenv) elist
-       printfn "%A" (callTypes)
-       printfn "%A" (toStringT paramTypList)
-
-       if (callTypes <> paramTypList) then failwith ("tcE: checkParams fail, types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
+   and checkParams f elist gtenv ltenv = 
+       let test paramTypList = let callTypes = List.map (tcE gtenv ltenv) elist
+                               printfn "%A" (callTypes)
+                               printfn "%A" (paramTypList)
+                               if (callTypes <> paramTypList) then failwith ("tcE: checkParams fail, types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
        
-       match funcTyp with
-       | None -> failwith "chechkparams: none return not implemented yet"
-       | Some t -> t
-
+       match Map.find f gtenv with
+        | FTyp(t1,Some t) -> test t1
+                             t
+        | FTyp(t1,None)   -> test t1
+                             FTyp(t1,None)
+        | _               -> failwith ("tcE: no function with this name: " + f)
+       
+       
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
                                    | ("!", BTyp) -> BTyp
@@ -80,6 +86,7 @@ module TypeCheck =
                                                 | Some t -> if (tcE gtenv ltenv e = t) then ()
                                                             else failwith ("tcS: expected type " + toStringT ([t]) + " as return, but got " + toStringT ([tcE gtenv ltenv e])) 
                          | Return(None)   -> failwith "tcS: Return none not implemented yet"
+                         | Call(p,stms)   -> ignore(checkParams p stms gtenv ltenv) 
                          | _              -> failwith "tcS: this statement is not supported yet"
    
    and tcGC gtenv ltenv topt (ex,stms) = 
@@ -111,12 +118,13 @@ module TypeCheck =
          tcS gtenv localVars topt stm
          
          // test if it include a return statement at all
-         let rec hasReturnStm = function
-            | Block([],stms) -> List.exists hasReturnStm stms
-            | Return(Some(t))-> true
-            | _ -> false
-
-         if (not (hasReturnStm stm)) then failwith ("tcFun: The function \"" + f + "\" doesn't have return statement")
+//         TODO: need to check if alt have return statements
+//         let rec hasReturnStm = function
+//            | Block([],stms) -> List.exists hasReturnStm stms
+//            | Return(Some(t))-> true
+//            | _ -> false
+//
+//         if (not (hasReturnStm stm)) then failwith ("tcFun: The function \"" + f + "\" doesn't have return statement")
 
          // returns Map<function name, FTYP>
          let types = snd (List.unzip loc)                            // parameter types for function
@@ -133,8 +141,8 @@ module TypeCheck =
 
    and toStringT' s = function
       | [] -> s
-      | ITyp::r -> toStringT' (" ITyp" + s) r 
-      | BTyp::r -> toStringT' (" BTyp" + s) r
+      | ITyp::r -> toStringT' (s + " ITyp") r 
+      | BTyp::r -> toStringT' (s + " BTyp") r
       | _::r    -> toStringT' s r
 
    and toStringT l = toStringT' "" l

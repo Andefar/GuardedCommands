@@ -1,4 +1,12 @@
 ﻿begin 
-   procedure s2(x:int,x:bool) = { print 3; return 1};
-   print 3
+   procedure s1() = print 1,
+   procedure s2(x:int) = print x,
+   procedure s3(b:bool,x:int) = { print b; print x},
+   procedure s4(b:bool,x:int) = {if b -> print x
+                                  | ! b -> print 0
+                                 fi};
+   s1();
+   s2(2);
+   s3(true,3);
+   s4(true,4)
 end

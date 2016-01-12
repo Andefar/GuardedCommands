@@ -7,7 +7,7 @@
    function four(x:int,b:bool):bool = if x=4  -> return b 
                                        | true -> return false 
                                       fi,
-   function five(x:int,y:int):int = { print x; return x+y };
+   function five(x:int,y:int):int = { print x; print y; return x+y };
    c := one();
    print c;
    print two(2);
