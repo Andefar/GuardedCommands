@@ -9,6 +9,7 @@ type token =
   | ABORT
   | FUN
   | RETURN
+  | PROC
   | NEG
   | PLUS
   | MINUS
@@ -51,6 +52,7 @@ type tokenId =
     | TOKEN_ABORT
     | TOKEN_FUN
     | TOKEN_RETURN
+    | TOKEN_PROC
     | TOKEN_NEG
     | TOKEN_PLUS
     | TOKEN_MINUS
@@ -94,7 +96,7 @@ type nonTerminalId =
     | NONTERM_BasicTyp
     | NONTERM_Typ
     | NONTERM_Dec
-    | NONTERM_FunDecl
+    | NONTERM_FunDec
     | NONTERM_DecL
     | NONTERM_DecList
     | NONTERM_Access

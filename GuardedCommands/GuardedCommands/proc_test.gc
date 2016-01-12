@@ -1,0 +1,4 @@
+﻿begin 
+   procedure s2(x:int,x:bool) = { print 3; return 1};
+   print 3
+end

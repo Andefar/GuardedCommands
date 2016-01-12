@@ -1,6 +1,0 @@
-﻿begin 
-   x:int,
-   function f(x:int,y:bool):int = { print x; if y -> return x+1 fi };
-   x:=f(2, true);
-   print 2
-end
