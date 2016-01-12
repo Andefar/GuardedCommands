@@ -19,16 +19,26 @@ module TypeCheck =
          | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*"; "="; "&&";"-"]        
                                 -> tcDyadic gtenv ltenv f e1 e2 
          //functions matches here
-         | Apply(f,elist)       -> match Map.tryFind f gtenv with
-                                       | None   -> failwith ("no declaration for function: " + f)
-                                       | Some t -> checkParams t elist
+         | Apply(f,elist)       -> match tcA gtenv ltenv (AVar f) with
+                                    | FTyp(t1,t2) -> checkParams (t1,t2) elist gtenv ltenv 
+                                    | _      -> failwith ("tcE: no function with this name: " + f)
 
+//                                    match Map.tryFind f ltenv with
+//                                       | None   -> match Map.tryFind f gtenv with
+//                                                    | None   -> failwith ("no declaration for function: " + f)
+//                                                    | Some t -> checkParams t elist gtenv ltenv
+//                                       | Some t -> checkParams t elist gtenv ltenv
+//                                       checkParams t elist gtenv ltenv
          | _                    -> failwith "tcE: not supported yet"
    
-   and checkParams (paramTypsList,funcTyp) elist = 
-       //every elem in paramTypsList must match every elem in elist else throw exception
-       //return the return type for the function
-   
+   and checkParams (paramTypList,funcTyp) elist gtenv ltenv = 
+       let callTypes = List.collect (fun x -> [tcE gtenv ltenv x]) elist
+       if (callTypes <> paramTypList) then failwith "tcE: checkParams fail, type from call doesn't match the declaration"
+       
+       match funcTyp with
+       | None -> failwith "chechkparams: none return not implemented yet"
+       | Some t -> t
+
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
                                    | ("!", BTyp) -> BTyp
@@ -68,6 +78,8 @@ module TypeCheck =
                          | Alt(GC gc)     -> List.iter (tcGC gtenv ltenv) gc 
                          | Do(GC gc)      -> List.iter (tcGC gtenv ltenv) gc                                
                          | Block([],stms) -> List.iter (tcS gtenv ltenv) stms
+                         | Return(Some e) -> ignore(tcE gtenv ltenv e)
+                         | Return(None)   -> failwith "tcS: Return none not implemented yet"
                          | _              -> failwith "tcS: this statement is not supported yet"
    
    and tcGC gtenv ltenv (ex,stms) = 
@@ -76,18 +88,47 @@ module TypeCheck =
                        else failwith "GC type check fail"
 
    and tcGDec gtenv = function  
-                      | VarDec(t,s)               -> Map.add s t gtenv
-                      //her skal man returnere en ftyp(typ list,some typ) som skal addes til det globe env (gtenv)
-                      //check samtidig at return e, returnere det samme som "some typ" (functionens return type)
-                      // check her at params er unikke og at hvert stm er well typed
+         | VarDec(t,s)               -> Map.add s t gtenv
+         //her skal man returnere en ftyp(typ list,some typ) som skal addes til det globe env (gtenv)
+         //check samtidig at return e, returnere det samme som "some typ" (functionens return type)
+         // check her at params er unikke og at hvert stm er well typed
 //                      | FunDec(topt,f, decs, stm)   -> tcFun topt f decs stm gtenv
-                      | _                         -> failwith "type check: function/procedure declarations not yet supported"
+         | FunDec(topt,f, varDecs, stm) -> tcFun topt f varDecs stm gtenv
+//         | _                         -> failwith "type check: function/procedure declarations not yet supported"
 
-//
-//   and tcFun topt f (dec:Dec list) stm = 
-//         let unzipped = snd (List.unzip dec)
-//         List.forall (fun name -> 2 > (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped
- 
+   and tcFun topt f (dec:Dec list) stm gtenv = 
+         // get local variable from parameter and check statements
+         let rec aux2 map = function 
+            | []                -> map
+            | VarDec(t,s)::rest -> aux2 (Map.add s t map) rest 
+            | _                 -> failwith "tcFun: VarDec Fail"
+         
+         let localVars = aux2 Map.empty dec
+         tcS gtenv localVars stm
+
+         let loc = Map.toList localVars
+
+         // checking for duplicate parameters
+         if (not (loc = [])) then
+            let unzipped = fst (List.unzip loc)
+            if (List.forall (fun name -> 1 < (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped) then 
+                  failwith "tcFun: duplicate function parameter"
+         
+         // check return type is correct
+         match topt with 
+            | None   -> failwith "tcFun: got an procedure when matching topt"
+            | Some t ->  let rec aux3 = function
+                           | Return(Some e) -> (tcE gtenv localVars e) = t
+                           | Return(None) -> failwith "tcFun: aux3 fail cause return was none"
+                           | Block(_,stms) -> List.forall (aux3) stms
+                           | _ -> true 
+                         
+                         if (not (aux3 stm)) then failwith "tcFun aux3 fail cause of wrong return type check" 
+                         
+                         // returns Map<function name, FTYP>
+                         let types = snd (List.unzip loc)
+                         Map.add f (FTyp(types,topt)) gtenv
+          
    and tcGDecs gtenv = function
                        | dec::decs -> tcGDecs (tcGDec gtenv dec) decs
                        | _         -> gtenv
