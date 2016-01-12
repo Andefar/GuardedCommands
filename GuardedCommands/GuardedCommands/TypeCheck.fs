@@ -20,11 +20,6 @@ module TypeCheck =
                                 -> tcDyadic gtenv ltenv f e1 e2 
          //functions matches here
          | Apply(f,elist)       -> checkParams f elist gtenv ltenv
-         
-//         match Map.find f gtenv with
-//                                    | FTyp(t1,Some t) -> checkParams f (t1,t) elist gtenv ltenv
-//                                                         t
-//                                    | _               -> failwith ("tcE: no function with this name: " + f)
          | _                    -> failwith "tcE: not supported yet"
    
    and checkParams f elist gtenv ltenv = 
@@ -34,11 +29,11 @@ module TypeCheck =
                                if (callTypes <> paramTypList) then failwith ("tcE: checkParams fail, types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
        
        match Map.find f gtenv with
-        | FTyp(t1,Some t) -> test t1
-                             t
-        | FTyp(t1,None)   -> test t1
-                             FTyp(t1,None)
-        | _               -> failwith ("tcE: no function with this name: " + f)
+        | FTyp(types,Some t) -> test types
+                                t
+        | FTyp(types,None)   -> test types
+                                FTyp(types,None)
+        | _                  -> failwith ("tcE: no function or procedure with this name: " + f)
        
        
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
