@@ -44,15 +44,18 @@ module CodeGeneration =
                                           | "*"  -> [MUL]
                                           | "="  -> [EQ] 
                                           | _    -> failwith "CE: this case is not possible"
-                                CE vEnv fEnv e1 @ CE vEnv fEnv e2 @ ins 
-
+                                CE vEnv fEnv e1 @ CE vEnv fEnv e2 @ ins
+       | Apply(f,elist) -> let (labf,retTyp,paraDecs) = Map.find f fEnv
+                           let le = List.length elist
+                           (List.concat(List.map (fun e -> CE vEnv fEnv e) elist)) @ [CALL(le,labf)]
+                            
        | _            -> failwith "CE: not supported yet"
-       
+
 
 /// CA vEnv fEnv acc gives the code for an access acc on the basis of a variable and a function environment
    and CA vEnv fEnv = function | AVar x         -> match Map.find x (fst vEnv) with
                                                    | (GloVar addr,_) -> [CSTI addr]
-                                                   | (LocVar addr,_) -> failwith "CA: Local variables not supported yet"
+                                                   | (LocVar addr,_) -> [GETBP; CSTI addr; ADD]
                                | AIndex(acc, e) -> failwith "CA: array indexing not supported yet" 
                                | ADeref e       -> failwith "CA: pointer dereferencing not supported yet"
 
@@ -82,13 +85,15 @@ module CodeGeneration =
                              [Label labStart] @
                              List.collect (CGC vEnv fEnv labStart) gc
        | Block([],stms)   -> CSs vEnv fEnv stms
-       
+    
+       | Return (Some e)  -> (CE vEnv fEnv e) @ [RET (snd vEnv)] 
+        
        | _                -> failwith "CS: this statement is not supported yet"
 
    and CGC vEnv fEnv lab (ex,stms) =
         let labFalse = newLabel() 
         CE vEnv fEnv ex @ [IFZERO labFalse] @ CSs vEnv fEnv stms @ [GOTO lab;Label labFalse]
-
+   
    and CSs vEnv fEnv stms = List.collect (CS vEnv fEnv) stms 
 
 
@@ -98,22 +103,48 @@ module CodeGeneration =
 (* Build environments for global variables and functions *)
 
    let makeGlobalEnvs decs = 
-       let rec addv decs vEnv fEnv = 
-           match decs with 
-           | []         -> (vEnv, fEnv, [])
-           | dec::decr  -> 
-             match dec with
-             | VarDec (typ, var) -> let (vEnv1, code1) = allocate GloVar (typ, var) vEnv
-                                    let (vEnv2, fEnv2, code2) = addv decr vEnv1 fEnv
-                                    (vEnv2, fEnv2, code1 @ code2)
-             | FunDec (tyOpt, f, xs, body) -> failwith "makeGlobalEnvs: function/procedure declarations not supported yet"
-       addv decs (Map.empty, 0) Map.empty
+      let rec addv decs vEnv fEnv = 
+         match decs with 
+         | []         -> (vEnv, fEnv, [])
+         | dec::decr  -> 
+         match dec with
+         | VarDec (typ, var) -> let (vEnv1, code1) = allocate GloVar (typ, var) vEnv
+                                let (vEnv2, fEnv2, code2) = addv decr vEnv1 fEnv
+                                (vEnv2, fEnv2, code1 @ code2)
+         | FunDec (tyOpt, f, xs, body) -> addv decr vEnv (Map.add f (newLabel(), tyOpt, xs) fEnv)
+      addv decs (Map.empty, 0) Map.empty
+   
+
+
+   let bindAux (en,fd) dla =
+      match dla with
+       | VarDec(ty,na) -> ((Map.add na (LocVar fd,ty) en),fd+1)
+       | _             -> failwith "bindAux: was expecting varDec only"
+
+   let getEnvDepth paraDecs (gen,fde) = 
+      List.fold bindAux (gen,fde) (paraDecs)
 
 /// CP prog gives the code for a program prog
    let CP (P(decs,stms)) = 
-       let _ = resetLabels ()
-       let ((gvM,_) as gvEnv, fEnv, initCode) = makeGlobalEnvs decs
-       initCode @ CSs gvEnv fEnv stms @ [STOP]     
+      let _ = resetLabels ()
+      let ((gvM,_) as gvEnv, fEnv, initCode) = makeGlobalEnvs decs
 
+      let getFuncCode(tyOpt, f, xs, body) = 
+         let (funcLab,_,pars) = Map.find f fEnv
+         let (envf, funcDepth) = getEnvDepth pars (gvM,0)
+         let funcCode = CS (envf,funcDepth) fEnv body
+         let retAdr = ((List.length pars)-1)
+         [Label funcLab] @ funcCode @ [RET retAdr]
 
+      let CF =
+         List.choose (function
+                          | FunDec (rt,nam,arg,s) -> Some (getFuncCode(rt,nam,arg,s))
+                          | VarDec _ -> None) decs
+         
+//        let auxCF = function
+//            | FunDec(rt,nam,arg,s) -> getFuncCode(rt,nam,arg,s)
+//            | VarDec _             -> []
+//         List.collect (fun elem -> auxCF elem) de     
+
+      initCode @ (CSs gvEnv fEnv stms) @ [STOP] @ (List.concat CF)
 
