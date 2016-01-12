@@ -26,11 +26,10 @@ module TypeCheck =
    
    and checkParams f (paramTypList,funcTyp) elist gtenv ltenv = 
        let callTypes = List.map (tcE gtenv ltenv) elist
-       printfn "%s" (toStringT callTypes)
-       printfn "%s" (toStringT paramTypList)
+       printfn "%A" (callTypes)
+       printfn "%A" (toStringT paramTypList)
 
        if (callTypes <> paramTypList) then failwith ("tcE: checkParams fail, types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
-//       /procedure \n calltypes:" + string(callTypes) + "\n  " + string(paramTypList))
        
        match funcTyp with
        | None -> failwith "chechkparams: none return not implemented yet"
@@ -76,9 +75,10 @@ module TypeCheck =
                          | Do(GC gc)      -> List.iter (tcGC gtenv ltenv topt) gc                                
                          | Block([],stms) -> List.iter (tcS gtenv ltenv topt) stms
                          | Return(Some e) -> match topt with 
-                                                | None   -> failwith ("tcS: Should not match with this return (Some e) asd asd" + string(topt) + " " + string(e))
+                                                | None   -> printfn "Type option is %A" topt
+                                                            failwith "tcS: this should not return anything"
                                                 | Some t -> if (tcE gtenv ltenv e = t) then ()
-                                                            else failwith "tcS: return fail, the return var is not the same as defined" 
+                                                            else failwith ("tcS: expected type " + toStringT ([t]) + " as return, but got " + toStringT ([tcE gtenv ltenv e])) 
                          | Return(None)   -> failwith "tcS: Return none not implemented yet"
                          | _              -> failwith "tcS: this statement is not supported yet"
    
@@ -110,9 +110,17 @@ module TypeCheck =
          let localVars = Map.ofList loc
          tcS gtenv localVars topt stm
          
+         // test if it include a return statement at all
+         let rec hasReturnStm = function
+            | Block([],stms) -> List.exists hasReturnStm stms
+            | Return(Some(t))-> true
+            | _ -> false
+
+         if (not (hasReturnStm stm)) then failwith ("tcFun: The function \"" + f + "\" doesn't have return statement")
+
          // returns Map<function name, FTYP>
          let types = snd (List.unzip loc)                            // parameter types for function
-         printfn "types for function %s is %s" f (toStringT types)
+         printfn "types for function %A is %A" f types
          Map.add f (FTyp(types,topt)) gtenv
           
    and tcGDecs gtenv = function
