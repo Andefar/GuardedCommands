@@ -24,7 +24,11 @@ module TypeCheck =
        let checkTypes paramTypList = let callTypes = List.map (tcE gtenv ltenv) elist
                                      printfn "%A" (callTypes)
                                      printfn "%A" (paramTypList)
-                                     if (callTypes <> paramTypList) then failwith ("tcE: checkParams fail, types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
+                                     let equal = List.forall2 (fun x y -> match (x,y) with 
+                                                                          | (ATyp (t1,_),ATyp(t2,_)) -> t1=t2
+                                                                          | (t1,t2) -> t1=t2) 
+                                                            callTypes paramTypList
+                                     if(not equal) then failwith ("types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
        try
           match Map.find f gtenv with
            | FTyp(types,Some t) -> if (s<>"fun") then failwith "checkParams: function is not used the right way"
@@ -35,7 +39,8 @@ module TypeCheck =
                                    FTyp(types,None)
            | _                  -> failwith ("tcE: no function or procedure with this name: " + f)
        with
-           | ex -> failwith ("checkParams: kender muligvis ikke function/procedure \"" + f + "\". Fanget exception" + string(ex))
+           | ex -> printfn "Exception: %A" ex
+                   failwith ("checkParams: Se ovenstående. Hvis \"...keyNotFound...\" betyder at function/procedure \"" + f + "\" ikke kan findes")
                
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
@@ -61,13 +66,14 @@ module TypeCheck =
                              | None   -> match Map.tryFind x gtenv with
                                          | None   -> failwith ("no declaration for : " + x)
                                          | Some t -> t
-                             | Some t -> t            
+                             | Some t -> t  
          | AIndex(acc, e) -> let aTyp = match (tcA gtenv ltenv acc) with
-                                          | ATyp (t,i) -> t
-                                          | _ -> failwith "tcA: shouldn fail here, because its should be an ATyp"
+                                          | ATyp (t,None) -> t
+                                          | ATyp (t,Some(i)) when i>=0 -> t
+                                          | _ -> failwith "tcA: can't access negative index at array"
                              if (aTyp <> tcE gtenv ltenv e) then 
-                                 printf "Access type: %A" aTyp
-                                 printf "Exp type: %A" (tcE gtenv ltenv e)
+                                 printfn "Access type: %A" aTyp
+                                 printfn "Exp type: %A" (tcE gtenv ltenv e)
                                  failwith "tcA: types of array and access type, does not match" 
                              aTyp
 
@@ -103,21 +109,15 @@ module TypeCheck =
                        else failwith "GC type check fail"
 
    and tcGDec gtenv = function  
-         | VarDec(t,s) -> Map.add s t gtenv
-//         match t with
-//                           | ATyp (t,iOpt) -> match iOpt with
-//                                               | Some i -> if(i<1) then failwith "int<1"
-//                                               | None -> ignore(Map.add s t gtenv)   
-//                           | _    -> ignore(Map.add s t gtenv)
-
+         | VarDec(t,s) -> Map.add s t gtenv 
          | FunDec(topt,f, varDecs, stm) -> tcFun topt f varDecs stm gtenv
 
    and tcFun topt f dec stm gtenv = 
          // used to get a (string*Typ)list, because of dec list mismatch, only var is allowed
          let rec fstList l = function
-            | [] -> l
-            | VarDec(t,s)::r -> fstList (l@[(s,t)]) r
-            | _ -> failwith "tcFun: Functions is not allowed"
+            | []              -> l
+            | VarDec(t,s)::r  -> fstList (l@[(s,t)]) r
+            | _               -> failwith "tcFun: Functions is not allowed"
          
          let loc = fstList [] dec 
          let types = snd (List.unzip loc)                            // parameter types for function
@@ -158,9 +158,12 @@ module TypeCheck =
                             List.iter (tcS gtenv Map.empty None) stms
 
    and toStringT' s = function
-      | [] -> s
-      | ITyp::r -> toStringT' (s + " ITyp") r 
-      | BTyp::r -> toStringT' (s + " BTyp") r
-      | _::r    -> toStringT' s r
+      | []                 -> s
+      | ITyp::r            -> toStringT' (s + " ITyp") r 
+      | BTyp::r            -> toStringT' (s + " BTyp") r
+      | PTyp(_)::r         -> toStringT' (s + " PTyp") r
+      | ATyp(t,Some i)::r  -> toStringT' (s + " (ATyp," + toStringT [t] + ", " + string(i) + ")") r
+      | ATyp(t,None)::r    -> toStringT' (s + " (ATyp," + toStringT [t] + ", null)") r
+      | FTyp(t,_)::r       -> toStringT' (s + " FTyp with " + (toStringT t)) r
 
    and toStringT l = toStringT' "" l
