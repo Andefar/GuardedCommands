@@ -48,7 +48,7 @@ module CodeGeneration =
        | Apply(f,elist) -> let (labf,retTyp,paraDecs) = Map.find f fEnv
                            let le = List.length elist
                            (List.concat(List.map (fun e -> CE vEnv fEnv e) elist)) @ [CALL(le,labf)]
-                            
+                                                         
        | _            -> failwith "CE: not supported yet"
 
 
@@ -85,6 +85,25 @@ module CodeGeneration =
                              [Label labStart] @
                              List.collect (CGC vEnv fEnv labStart) gc
        | Block([],stms)   -> CSs vEnv fEnv stms
+
+              
+       | Block (decL,stmL) -> let rec loopDec decs varEnv =
+                                 match decs with 
+                                 | []         -> (snd varEnv,[],varEnv)
+                                 | dec1::decr -> 
+                                   match dec1 with
+                                   | FunDec _ -> failwith "func block fundec!"
+                                   | VarDec(typ,na) ->
+                                     let (env1,code1) = allocate LocVar (typ, na) varEnv
+                                     let (depr, coder,newEnv) = loopDec decr env1
+                                     (depr, (code1 @ coder), newEnv)
+                              let rec loopStm stms varEnv funEnv =
+                                 match stms with
+                                 | []         -> []
+                                 | stm1::stmr -> CS varEnv funEnv stm1 @ (loopStm stmr varEnv funEnv)
+                              let (depEnd,decCode,nVEnv) = loopDec decL vEnv
+                              let stmCode = loopStm stmL nVEnv fEnv
+                              decCode @ stmCode @ [INCSP((snd vEnv) - depEnd)]  
     
        | Return (Some e)  -> (CE vEnv fEnv e) @ [RET (snd vEnv)] 
         
