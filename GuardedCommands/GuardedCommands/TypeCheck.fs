@@ -94,7 +94,13 @@ module TypeCheck =
                        else failwith "GC type check fail"
 
    and tcGDec gtenv = function  
-         | VarDec(t,s)                  -> Map.add s t gtenv
+         | VarDec(t,s) -> Map.add s t gtenv
+//         match t with
+//                           | ATyp (t,iOpt) -> match iOpt with
+//                                               | Some i -> if(i<1) then failwith "int<1"
+//                                               | None -> ignore(Map.add s t gtenv)   
+//                           | _    -> ignore(Map.add s t gtenv)
+
          | FunDec(topt,f, varDecs, stm) -> tcFun topt f varDecs stm gtenv
 
    and tcFun topt f dec stm gtenv = 

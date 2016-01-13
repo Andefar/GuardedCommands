@@ -1,0 +1,9 @@
+﻿begin  
+  c:int,
+  c:int,
+  function max(x:int,y:int, b:bool):int = { if b    -> return x
+                                            |  true -> return y
+                                            fi; return -1};
+  print max(2,3,true);
+  print max(2,3,false)
+end
