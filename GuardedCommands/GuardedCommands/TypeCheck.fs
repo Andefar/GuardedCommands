@@ -13,7 +13,6 @@ module TypeCheck =
          | N _                  -> ITyp   
          | B _                  -> BTyp   
          | Access acc           -> tcA gtenv ltenv acc     
-                   
          | Apply(f,[e]) when List.exists (fun x ->  x=f) ["-";"!"]  
                                 -> tcMonadic gtenv ltenv f e        
          | Apply(f,[e1;e2]) when List.exists (fun x ->  x=f) ["+";"*"; "="; "&&";"-";"<";">";"<>";"<="]        
@@ -63,17 +62,27 @@ module TypeCheck =
                                          | None   -> failwith ("no declaration for : " + x)
                                          | Some t -> t
                              | Some t -> t            
-         | AIndex(acc, e) -> failwith "tcA: array indexing not supported yes"
+         | AIndex(acc, e) -> let aTyp = match (tcA gtenv ltenv acc) with
+                                          | ATyp (t,i) -> t
+                                          | _ -> failwith "tcA: shouldn fail here, because its should be an ATyp"
+                             if (aTyp <> tcE gtenv ltenv e) then 
+                                 printf "Access type: %A" aTyp
+                                 printf "Exp type: %A" (tcE gtenv ltenv e)
+                                 failwith "tcA: types of array and access type, does not match" 
+                             aTyp
+
          | ADeref e       -> failwith "tcA: pointer dereferencing not supported yes"
  
 
 /// tcS gtenv ltenv retOpt s checks the well-typeness of a statement s on the basis of type environments gtenv and ltenv
 /// for global and local variables and the possible type of return expressions 
    and tcS gtenv ltenv topt = function                           
-                         | PrintLn e       -> ignore(tcE gtenv ltenv e)
-                         | Ass(acc,e)      -> if tcA gtenv ltenv acc = tcE gtenv ltenv e 
-                                              then ()
-                                              else failwith "illtyped assignment"
+                         | PrintLn e        -> ignore(tcE gtenv ltenv e)
+                         | Ass(acc,e)       -> if tcA gtenv ltenv acc = tcE gtenv ltenv e 
+                                               then ()
+                                               else printf "Access type: %A" (tcA gtenv ltenv acc)
+                                                    printf "Exp type: %A" (tcE gtenv ltenv e)
+                                                    failwith "illtyped assignment"
                          | Alt(GC gc)       -> List.iter (tcGC gtenv ltenv topt) gc 
                          | Do(GC gc)        -> List.iter (tcGC gtenv ltenv topt) gc                                
                          | Block(decs,stms) -> let l = tcGDecs ltenv decs
