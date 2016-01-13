@@ -36,7 +36,7 @@ module TypeCheck =
                                    FTyp(types,None)
            | _                  -> failwith ("tcE: no function or procedure with this name: " + f)
        with
-           | ex -> failwith ("checkParams: kender ikke function/procedure \"" + f + "\". Fanget exception" + string(ex))
+           | ex -> failwith ("checkParams: kender muligvis ikke function/procedure \"" + f + "\". Fanget exception" + string(ex))
                
    and tcMonadic gtenv ltenv f e = match (f, tcE gtenv ltenv e) with
                                    | ("-", ITyp) -> ITyp
@@ -122,7 +122,7 @@ module TypeCheck =
          tcS newGtenv argVars topt stm
          
          // test if it include a return statement at all
-         if (not (hasReturnStm stm)) then 
+         if (topt<>None && not (hasReturnStm stm)) then 
             failwith ("tcFun: The function \"" + f + "\" doesn't have return statement or is not sure to return something cause of ALT or DO statements")
          
          // returns Map<string, typ>
