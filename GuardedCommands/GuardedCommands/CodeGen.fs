@@ -37,12 +37,15 @@ module CodeGeneration =
                                 CE vEnv fEnv b1 @ [IFZERO labfalse] @ CE vEnv fEnv b2
                                 @ [GOTO labend; Label labfalse; CSTI 0; Label labend]
        | Apply("!",[a])  -> CE vEnv fEnv a @ [NOT]
-       | Apply(o,[e1;e2]) when List.exists (fun x -> o=x) ["-";"+"; "*"; "="]
+       | Apply(o,[e1;e2]) when List.exists (fun x -> o=x) ["-";"+"; "*"; "=";"<";">";"<="]
                              -> let ins = match o with
                                           | "+"  -> [ADD]
                                           | "-"  -> [SUB]
                                           | "*"  -> [MUL]
-                                          | "="  -> [EQ] 
+                                          | "="  -> [EQ]
+                                          | "<"  -> [LT]
+                                          | ">"  -> [SWAP;LT]
+                                          | "<=" -> [SWAP; LT; NOT]
                                           | _    -> failwith "CE: this case is not possible"
                                 CE vEnv fEnv e1 @ CE vEnv fEnv e2 @ ins
        | Apply(f,elist) -> let (labf,retTyp,paraDecs) = Map.find f fEnv
