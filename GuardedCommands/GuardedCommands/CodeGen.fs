@@ -106,7 +106,11 @@ module CodeGeneration =
                               decCode @ stmCode @ [INCSP((snd vEnv) - depEnd)]  
     
        | Return (Some e)  -> (CE vEnv fEnv e) @ [RET (snd vEnv)] 
-        
+       
+       | Call(p,elist)           -> let (labf,retTyp,paraDecs) = Map.find p fEnv
+                                    let le = List.length elist
+                                    (List.concat(List.map (fun e -> CE vEnv fEnv e) elist)) @ [CALL(le,labf);INCSP -1]
+
        | _                -> failwith "CS: this statement is not supported yet"
 
    and CGC vEnv fEnv lab (ex,stms) =
@@ -129,8 +133,9 @@ module CodeGeneration =
          match dec with
          | VarDec (typ, var) -> let (vEnv1, code1) = allocate GloVar (typ, var) vEnv
                                 let (vEnv2, fEnv2, code2) = addv decr vEnv1 fEnv
-                                (vEnv2, fEnv2, code1 @ code2)
-         | FunDec (tyOpt, f, xs, body) -> addv decr vEnv (Map.add f (newLabel(), tyOpt, xs) fEnv)
+                                (vEnv2, fEnv2, code1 @ code2) 
+         | FunDec (None , f, xs, body) -> addv decr vEnv (Map.add f (newLabel(), None , xs) fEnv)
+         | FunDec (tyOpt, f, xs, body) -> addv decr vEnv (Map.add f (newLabel(), tyOpt, xs) fEnv)       
       addv decs (Map.empty, 0) Map.empty
    
 
@@ -153,17 +158,15 @@ module CodeGeneration =
          let (envf, funcDepth) = getEnvDepth pars (gvM,0)
          let funcCode = CS (envf,funcDepth) fEnv body
          let retAdr = ((List.length pars)-1)
-         [Label funcLab] @ funcCode @ [RET retAdr]
+         if (tyOpt = None) then 
+             [Label funcLab] @ funcCode @ [STOP]
+         else 
+             [Label funcLab] @ funcCode @ [RET retAdr]
 
       let CF =
          List.choose (function
                           | FunDec (rt,nam,arg,s) -> Some (getFuncCode(rt,nam,arg,s))
                           | VarDec _ -> None) decs
          
-//        let auxCF = function
-//            | FunDec(rt,nam,arg,s) -> getFuncCode(rt,nam,arg,s)
-//            | VarDec _             -> []
-//         List.collect (fun elem -> auxCF elem) de     
-
       initCode @ (CSs gvEnv fEnv stms) @ [STOP] @ (List.concat CF)
 
