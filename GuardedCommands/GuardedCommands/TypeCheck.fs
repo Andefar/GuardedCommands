@@ -98,13 +98,15 @@ module TypeCheck =
          | FunDec(topt,f, varDecs, stm) -> tcFun topt f varDecs stm gtenv
 
    and tcFun topt f dec stm gtenv = 
-         // used to get a (string*Typ)list, because of dec list mismatch
+         // used to get a (string*Typ)list, because of dec list mismatch, only var is allowed
          let rec fstList l = function
             | [] -> l
             | VarDec(t,s)::r -> fstList (l@[(s,t)]) r
             | _ -> failwith "tcFun: Functions is not allowed"
          
          let loc = fstList [] dec 
+         let types = snd (List.unzip loc)                            // parameter types for function
+         printfn "types for function %A is %A" f types
 
          // checking for duplicate parameters
          if (not (loc = [])) then
@@ -112,28 +114,27 @@ module TypeCheck =
             if (List.forall (fun name -> 1 < (List.fold (fun state elem -> if (elem = name) then state+1 else state) 0 unzipped)) unzipped) then 
                   failwith "tcFun: duplicate function parameter"
 
-         // check statements and if return types are correct
+         // check statements with new gtenv and temp. ltenv (incl. check of return types)
+         let newGtenv = Map.add f (FTyp(types,topt)) gtenv                  // put the function into global here, so that function can see itself
          let mutable argVars = Map.ofList loc
-         tcS gtenv argVars topt stm
+         printfn "Global: %A" newGtenv
+         printfn "Local: %A" argVars
+         tcS newGtenv argVars topt stm
          
          // test if it include a return statement at all
          if (not (hasReturnStm stm)) then 
             failwith ("tcFun: The function \"" + f + "\" doesn't have return statement or is not sure to return something cause of ALT or DO statements")
-
-         // returns Map<function name, FTYP>
-         let types = snd (List.unzip loc)                            // parameter types for function
-         printfn "types for function %A is %A" f types
-         Map.add f (FTyp(types,topt)) gtenv
+         
+         // returns Map<string, typ>
+         newGtenv
 
    and hasReturnStm = function
        | Block(_,stms) -> List.exists hasReturnStm stms
+       | Alt(GC gc)  -> List.exists (fun (ex,stms) -> List.exists hasReturnStm stms) gc
+       | Do(GC gc)   -> List.exists (fun (ex,stms) -> List.exists hasReturnStm stms) gc
        | Return(_)-> true
        | _ -> false
 
-//       Following is if alt and do should be checked for return statements
-//       | Alt(GC gc)  -> List.exists (fun (ex,stms) -> List.exists hasReturnStm stms) gc
-//       | Do(GC gc)   -> List.exists (fun (ex,stms) -> List.exists hasReturnStm stms) gc
-   
    and tcGDecs gtenv = function
                        | dec::decs -> tcGDecs (tcGDec gtenv dec) decs
                        | _         -> gtenv
