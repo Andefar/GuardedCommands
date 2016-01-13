@@ -1,0 +1,32 @@
+Liste over tests
+
+IF/DO:
+vis at det virker og at den vælger de rigtige statements
+brug <, >, <=
+program stop hvis intet matcher
+Exception: når man ikke bruger bool
+
+Functions:
+vis at de returnerer korrekt værdi
+lokale deklarationer virker
+Exception: Lokale vars kan ikke bruges udenfor scope
+Exception: Duplikerede parametre
+Exception: forkert return type for én af return statements
+Exception: Manglende return statement på If/do
+
+Procedures:
+vis at de udføres korrekt
+lokale deklarationer virker
+Procedure kan laves rekursivt
+Exception: Hvis forskel på procedure og funktions kald. Kald procedure som funktion og omvendt
+Exception: parametre der bliver kaldt passer ikke deklarationer
+
+Arrays:
+vis at det virker (også som parameter til funktion)
+vis at det virker lokalt
+Exceptions: Out of bound (ikke lavet?)
+Exception: Negativ index
+exception: tilgå Ikke deklarareret array
+
+Generalt:
+Vis at alle tests fra Michael kører
