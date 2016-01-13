@@ -106,7 +106,7 @@ module TypeCheck =
    and tcGC gtenv ltenv topt (ex,stms) = 
                        if (tcE gtenv ltenv ex = BTyp) then
                             List.iter (tcS gtenv ltenv topt) stms
-                       else failwith "GC type check fail"
+                       else failwith "Guarded command expects boolean"
 
    and tcGDec gtenv = function  
          | VarDec(t,s) -> Map.add s t gtenv 
@@ -117,7 +117,7 @@ module TypeCheck =
          let rec fstList l = function
             | []              -> l
             | VarDec(t,s)::r  -> fstList (l@[(s,t)]) r
-            | _               -> failwith "tcFun: Functions is not allowed"
+            | _               -> failwith "tcFun: Functions is not allowed to be declared inside functions"
          
          let loc = fstList [] dec 
          let types = snd (List.unzip loc)                            // parameter types for function
