@@ -130,7 +130,7 @@ module TypeCheck =
 
    and hasReturnStm = function
        | Block(_,stms) -> List.exists hasReturnStm stms
-       | Alt(GC gc)  -> List.exists (fun (ex,stms) -> List.forall hasReturnStm stms) gc
+       | Alt(GC gc)  -> List.forall (fun (ex,stms) -> List.exists hasReturnStm stms) gc
        | Return(_)-> true
        | _ -> false
 
