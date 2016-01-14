@@ -1,0 +1,10 @@
+begin
+   procedure printA(a: int[], len:int) =
+   { i: int; i:= 0; do ! i=len -> print a[i]; i:= i+1 od},
+   a: int[3],
+   m: int;
+   m:= 0;
+   a[0]:= 0; a[1]:=1; a[2]:=2;
+   m:=printA(a,3);
+   print m
+end
