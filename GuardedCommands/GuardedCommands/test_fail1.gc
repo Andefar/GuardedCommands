@@ -1,0 +1,4 @@
+﻿begin  
+  a:bool;
+  a:=3
+end

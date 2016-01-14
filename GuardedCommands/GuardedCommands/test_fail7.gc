@@ -1,0 +1,3 @@
+﻿begin  
+  function f():int = print 1;
+end

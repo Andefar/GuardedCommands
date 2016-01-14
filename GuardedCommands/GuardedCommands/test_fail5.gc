@@ -1,0 +1,4 @@
+﻿begin  
+  function f(x:int):int = { function h():int = return 1;
+                            return x};
+end

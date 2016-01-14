@@ -1,0 +1,3 @@
+﻿begin  
+  function f(x:int):int = return true;
+end

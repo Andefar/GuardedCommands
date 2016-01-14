@@ -28,7 +28,7 @@ module TypeCheck =
                                                                           | (ATyp (t1,_),ATyp(t2,_)) -> t1=t2
                                                                           | (t1,t2) -> t1=t2) 
                                                             callTypes paramTypList
-                                     if(not equal) then failwith ("types from call from " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
+                                     if(not equal) then failwith ("type missmatch from call from params. Call " + f + " doesn't match the declaration of function" + "\n calltypes:" + (toStringT callTypes) + "\n  paramTypList" + (toStringT paramTypList))
        try
           match Map.find f gtenv with
            | FTyp(types,Some t) -> if (s<>"fun") then failwith "checkParams: function is not used the right way"
@@ -86,20 +86,17 @@ module TypeCheck =
                          | PrintLn e        -> ignore(tcE gtenv ltenv e)
                          | Ass(acc,e)       -> if tcA gtenv ltenv acc = tcE gtenv ltenv e 
                                                then ()
-                                               else printf "Access type: %A" (tcA gtenv ltenv acc)
-                                                    printf "Exp type: %A" (tcE gtenv ltenv e)
-                                                    failwith "illtyped assignment"
+                                               else failwith "tcS: illegal typed assignment"
                          | Alt(GC gc)       -> List.iter (tcGC gtenv ltenv topt) gc 
                          | Do(GC gc)        -> List.iter (tcGC gtenv ltenv topt) gc                                
-                         | Block(decs,stms) -> let l = tcGDecs ltenv decs
-                                               printfn "%A" l
-                                               printfn "%A" gtenv
+                         | Block(decs,stms) -> ignore(fstList [] decs)
+                                               let l = tcGDecs ltenv decs
                                                List.iter (tcS gtenv l topt) stms
                          | Return(Some e)   -> match topt with 
                                                 | None   -> printfn "Type option is %A" topt
                                                             failwith "tcS: Return statement is not allowed here"
                                                 | Some t -> if (tcE gtenv ltenv e = t) then ()
-                                                            else failwith ("tcS: expected type " + toStringT ([t]) + " as return, but got " + toStringT ([tcE gtenv ltenv e])) 
+                                                            else failwith ("tcS: expected return type mismatch " + toStringT ([t]) + " as return, but got " + toStringT ([tcE gtenv ltenv e])) 
                          | Return(None)     -> failwith "tcS: return statement need something to return"
                          | Call(p,stms)     -> ignore(checkParams p stms gtenv ltenv "proc") 
    
@@ -112,14 +109,15 @@ module TypeCheck =
          | VarDec(t,s) -> Map.add s t gtenv 
          | FunDec(topt,f, varDecs, stm) -> tcFun topt f varDecs stm gtenv
 
+   // used to get a (string*Typ)list, because of dec list mismatch, only var is allowed
+   and fstList l = function
+      | []              -> l
+      | VarDec(t,s)::r  -> fstList (l@[(s,t)]) r
+      | _               -> failwith "Functions are not allowed to be declared here"
+
    and tcFun topt f dec stm gtenv = 
-         // used to get a (string*Typ)list, because of dec list mismatch, only var is allowed
-         let rec fstList l = function
-            | []              -> l
-            | VarDec(t,s)::r  -> fstList (l@[(s,t)]) r
-            | _               -> failwith "tcFun: Functions is not allowed to be declared inside functions"
-         
-         let loc = fstList [] dec 
+       
+         let loc = fstList [] dec                             
          let types = snd (List.unzip loc)                            // parameter types for function
          printfn "types for function %A is %A" f types
 

@@ -1,0 +1,3 @@
+﻿begin  
+  function f(x:int,function h():int = return 1):int = return x;
+end
