@@ -37,6 +37,7 @@ module CodeGeneration =
                                 CE vEnv fEnv b1 @ [IFZERO labfalse] @ CE vEnv fEnv b2
                                 @ [GOTO labend; Label labfalse; CSTI 0; Label labend]
        | Apply("!",[a])  -> CE vEnv fEnv a @ [NOT]
+       //Code beneath is inspired by Peter Sestoft's MicroC language compiler
        | Apply(o,[e1;e2]) when List.exists (fun x -> o=x) ["-";"+"; "*"; "=";"<";">";"<="]
                              -> let ins = match o with
                                           | "+"  -> [ADD]
@@ -56,6 +57,7 @@ module CodeGeneration =
 
 
 /// CA vEnv fEnv acc gives the code for an access acc on the basis of a variable and a function environment
+//Code beneath is inspired by Peter Sestoft's MicroC language compiler
    and CA vEnv fEnv = function | AVar x         -> match Map.find x (fst vEnv) with
                                                    | (GloVar addr,_) -> [CSTI addr]
                                                    | (LocVar addr,_) -> [GETBP; CSTI addr; ADD]
@@ -68,6 +70,7 @@ module CodeGeneration =
 
   
 (* Bind declared variable in env and generate code to allocate it: *)   
+//Code beneath is inspired by Peter Sestoft's MicroC language compiler
    let allocate (kind : int -> Var) (typ, x) (vEnv : varEnv)  =
     let (env, fdepth) = vEnv 
     match typ with
@@ -96,7 +99,7 @@ module CodeGeneration =
                              List.collect (CGC vEnv fEnv labStart) gc
        | Block([],stms)   -> CSs vEnv fEnv stms
 
-              
+       //Code beneath is inspired by Peter Sestoft's MicroC language compiler       
        | Block (decL,stmL) -> let rec loopDec decs varEnv =
                                  match decs with 
                                  | []         -> (snd varEnv,[],varEnv)
@@ -159,6 +162,7 @@ module CodeGeneration =
       List.fold bindAux (gen,fde) (paraDecs)
 
 /// CP prog gives the code for a program prog
+//Code beneath is inspired by Peter Sestoft's MicroC language compiler
    let CP (P(decs,stms)) = 
       let _ = resetLabels ()
       let ((gvM,_) as gvEnv, fEnv, initCode) = makeGlobalEnvs decs
